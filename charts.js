@@ -1,0 +1,264 @@
+// 图表处理模块
+
+class ChartManager {
+  constructor() {
+    this.populationChart = null;
+    this.newCasesChart = null;  // 修改为每日新增传播指标图表
+    this.healthOutcomesChart = null;  // 添加每日健康结果指标图表
+    this.initialized = false;
+  }
+
+  initialize() {
+    // 初始化人口分布图表
+    const populationChartCtx = document.getElementById('population-chart').getContext('2d');
+    this.populationChart = new Chart(populationChartCtx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: '易感人群',
+            data: [],
+            borderColor: '#3498db',
+            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4
+          },
+          {
+            label: '潜伏人群',
+            data: [],
+            borderColor: '#f39c12',
+            backgroundColor: 'rgba(243, 156, 18, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4
+          },
+          {
+            label: '感染人群',
+            data: [],
+            borderColor: '#e74c3c',
+            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4
+          },
+          {
+            label: '恢复人群',
+            data: [],
+            borderColor: '#2ecc71',
+            backgroundColor: 'rgba(46, 204, 113, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4
+          },
+          {
+            label: '死亡人数',
+            data: [],
+            borderColor: '#7f8c8d',
+            backgroundColor: 'rgba(127, 140, 141, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          title: {
+            display: true,
+            text: '人口分布趋势'
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false
+          },
+          legend: {
+            position: 'top',
+          }
+        },
+        scales: {
+          x: {
+            display: true,
+            title: {
+              display: true,
+              text: '天数'
+            }
+          },
+          y: {
+            display: true,
+            title: {
+              display: true,
+              text: '人数'
+            },
+            min: 0
+          }
+        }
+      }
+    });
+
+    // 初始化每日新增传播指标图表
+    const newCasesChartCtx = document.getElementById('new-cases-chart').getContext('2d');
+    this.newCasesChart = new Chart(newCasesChartCtx, {
+      type: 'bar',
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: '每日新增暴露',
+            data: [],
+            backgroundColor: 'rgba(243, 156, 18, 0.7)',
+            borderColor: '#f39c12',
+            borderWidth: 1
+          },
+          {
+            label: '每日新增发病',
+            data: [],
+            backgroundColor: 'rgba(231, 76, 60, 0.7)',
+            borderColor: '#e74c3c',
+            borderWidth: 1
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          title: {
+            display: true,
+            text: '每日传播数据'
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false
+          },
+          legend: {
+            position: 'top',
+          }
+        },
+        scales: {
+          x: {
+            display: true,
+            title: {
+              display: true,
+              text: '天数'
+            }
+          },
+          y: {
+            display: true,
+            title: {
+              display: true,
+              text: '人数'
+            },
+            min: 0
+          }
+        }
+      }
+    });
+
+    // 初始化每日健康结果指标图表
+    const healthOutcomesChartCtx = document.getElementById('health-outcomes-chart').getContext('2d');
+    this.healthOutcomesChart = new Chart(healthOutcomesChartCtx, {
+      type: 'bar',
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: '每日康复人数',
+            data: [],
+            backgroundColor: 'rgba(22, 160, 133, 0.7)',
+            borderColor: '#16a085',
+            borderWidth: 1
+          },
+          {
+            label: '每日死亡人数',
+            data: [],
+            backgroundColor: 'rgba(127, 140, 141, 0.7)',
+            borderColor: '#7f8c8d',
+            borderWidth: 1
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          title: {
+            display: true,
+            text: '每日健康结果数据'
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false
+          },
+          legend: {
+            position: 'top',
+          }
+        },
+        scales: {
+          x: {
+            display: true,
+            title: {
+              display: true,
+              text: '天数'
+            }
+          },
+          y: {
+            display: true,
+            title: {
+              display: true,
+              text: '人数'
+            },
+            min: 0
+          }
+        }
+      }
+    });
+
+    this.initialized = true;
+
+    // 监听数据更新事件
+    document.addEventListener('dataUpdated', (event) => {
+      this.updateCharts(event.detail);
+    });
+  }
+
+  updateCharts(historicalData) {
+    if (!this.initialized) return;
+
+    // 提取数据
+    const days = historicalData.map(data => data.day);
+    const susceptibleData = historicalData.map(data => data.susceptible);
+    const exposedData = historicalData.map(data => data.exposed || 0); // 提取潜伏期数据
+    const infectedData = historicalData.map(data => data.infected);
+    const recoveredData = historicalData.map(data => data.recovered);
+    const deadData = historicalData.map(data => data.dead);
+    const newExposedData = historicalData.map(data => data.newExposed || 0); // 提取新增潜伏数据
+    const newInfectionsData = historicalData.map(data => data.newInfections);
+    const newRecoveredData = historicalData.map(data => data.newRecovered || 0);
+    const newDeathsData = historicalData.map(data => data.newDeaths || 0); // 提取新增死亡数据
+
+    // 更新人口分布图表
+    this.populationChart.data.labels = days;
+    this.populationChart.data.datasets[0].data = susceptibleData;
+    this.populationChart.data.datasets[1].data = exposedData; // 更新潜伏期数据
+    this.populationChart.data.datasets[2].data = infectedData;
+    this.populationChart.data.datasets[3].data = recoveredData;
+    this.populationChart.data.datasets[4].data = deadData;
+    this.populationChart.update();
+
+    // 更新每日新增传播指标图表
+    this.newCasesChart.data.labels = days;
+    this.newCasesChart.data.datasets[0].data = newExposedData; // 更新新增潜伏数据
+    this.newCasesChart.data.datasets[1].data = newInfectionsData;
+    this.newCasesChart.update();
+
+    // 更新每日健康结果指标图表
+    this.healthOutcomesChart.data.labels = days;
+    this.healthOutcomesChart.data.datasets[0].data = newRecoveredData;
+    this.healthOutcomesChart.data.datasets[1].data = newDeathsData;
+    this.healthOutcomesChart.update();
+  }
+}

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>病毒传播模拟</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <h1>病毒传播模拟系统</h1>
+    </header>
+
+    <div class="main-content">
+      <div class="simulation-area">
+        <canvas id="simulation-canvas"></canvas>
+        <div class="simulation-controls">
+          <button id="start-btn">开始模拟</button>
+          <button id="pause-btn">暂停</button>
+          <button id="reset-btn">重置</button>
+        </div>
+      </div>
+
+      <div class="settings-panel">
+        <h2>参数设置</h2>
+        <div class="parameter">
+          <label for="simulation-speed">模拟速度:</label>
+          <input type="range" id="simulation-speed" min="1" max="10" value="5">
+          <span class="parameter-value" id="simulation-speed-value">5</span>
+        </div>
+
+        <div class="parameter">
+          <label for="population-size">总人口数量:</label>
+          <input type="range" id="population-size" min="50" max="1000" value="200">
+          <span class="parameter-value" id="population-size-value">200</span>
+        </div>
+        <div class="parameter">
+          <label for="initial-infected">初始感染人数:</label>
+          <input type="range" id="initial-infected" min="1" max="50" value="5">
+          <span class="parameter-value" id="initial-infected-value">5</span>
+        </div>
+
+        <div class="parameter">
+          <label for="infection-rate">传染率 (%):</label>
+          <input type="range" id="infection-rate" min="1" max="100" value="30">
+          <span class="parameter-value" id="infection-rate-value">30%</span>
+        </div>
+        <div class="parameter">
+          <label for="infection-radius">传染半径:</label>
+          <input type="range" id="infection-radius" min="5" max="50" value="15">
+          <span class="parameter-value" id="infection-radius-value">15</span>
+        </div>
+        <div class="parameter">
+          <label for="incubation-period">潜伏期 (天):</label>
+          <input type="range" id="incubation-period" min="1" max="14" value="5">
+          <span class="parameter-value" id="incubation-period-value">5</span>
+        </div>
+        <div class="parameter">
+          <label for="recovery-time">恢复时间 (天):</label>
+          <input type="range" id="recovery-time" min="1" max="30" value="14">
+          <span class="parameter-value" id="recovery-time-value">14</span>
+        </div>
+        <div class="parameter">
+          <label for="mortality-rate">死亡率 (%):</label>
+          <input type="range" id="mortality-rate" min="0" max="50" value="5">
+          <span class="parameter-value" id="mortality-rate-value">5%</span>
+        </div>
+
+        <div class="parameter">
+          <label for="movement-speed">移动速度:</label>
+          <input type="range" id="movement-speed" min="1" max="10" value="3">
+          <span class="parameter-value" id="movement-speed-value">3</span>
+        </div>
+        <div class="parameter">
+          <label for="quarantine">隔离措施:</label>
+          <input type="checkbox" id="quarantine">
+        </div>
+        <div class="parameter">
+          <label for="auto-stop">自动停止模拟:</label>
+          <input type="checkbox" id="auto-stop" checked>
+        </div>
+
+        <div class="parameter">
+          <label for="canvas-size">场地大小:</label>
+          <input type="range" id="canvas-size" min="300" max="2000" value="500">
+          <span class="parameter-value" id="canvas-size-value">500</span>
+        </div>
+        <button id="apply-size-btn" class="action-button">应用场地尺寸</button>
+      </div>
+
+      <div class="statistics-panel">
+        <h2>统计数据</h2>
+        <div class="day-counter">
+          <span class="day-label">当前天数: </span>
+          <span class="day-value" id="current-day">0</span>
+        </div>
+
+        <div class="stats-container">
+          <div class="stat-box">
+            <div class="stat-label">易感人群</div>
+            <div class="stat-value" id="susceptible-count">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">潜伏人群</div>
+            <div class="stat-value" id="exposed-count">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">感染人群</div>
+            <div class="stat-value" id="infected-count">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">恢复人群</div>
+            <div class="stat-value" id="recovered-count">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">死亡人数</div>
+            <div class="stat-value" id="death-count">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">今日暴露</div>
+            <div class="stat-value" id="new-exposed-count">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">今日发病</div>
+            <div class="stat-value" id="new-infections-count">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">今日康复</div>
+            <div class="stat-value" id="new-recovered-count">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">今日死亡</div>
+            <div class="stat-value" id="new-deaths-count">0</div>
+          </div>
+        </div>
+
+        <div class="charts-container">
+          <div class="chart">
+            <canvas id="population-chart"></canvas>
+          </div>
+          <div class="chart">
+            <canvas id="new-cases-chart"></canvas>
+          </div>
+          <div class="chart">
+            <canvas id="health-outcomes-chart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="simulation.js"></script>
+  <script src="charts.js"></script>
+  <script src="main.js"></script>
+</body>
+
+</html>
