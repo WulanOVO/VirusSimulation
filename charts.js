@@ -69,7 +69,11 @@ class ChartManager {
         plugins: {
           title: {
             display: true,
-            text: '人口分布趋势'
+            text: '人口分布趋势',
+            font: {
+              size: 18,
+              weight: 'bold'
+            }
           },
           tooltip: {
             mode: 'index',
@@ -132,7 +136,11 @@ class ChartManager {
         plugins: {
           title: {
             display: true,
-            text: '每日传播数据'
+            text: '每日新增病例数据',
+            font: {
+              size: 18,
+              weight: 'bold'
+            }
           },
           tooltip: {
             mode: 'index',
@@ -195,7 +203,11 @@ class ChartManager {
         plugins: {
           title: {
             display: true,
-            text: '每日健康结果数据'
+            text: '每日减少病例数据',
+            font: {
+              size: 18,
+              weight: 'bold'
+            }
           },
           tooltip: {
             mode: 'index',

@@ -1,5 +1,3 @@
-// 主控制模块
-
 // 全局变量
 let simulationArea;
 let chartManager;

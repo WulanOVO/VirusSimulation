@@ -1,4 +1,9 @@
-// 定义人群状态常量
+const susceptibleCount = document.getElementById('susceptible-count');
+const exposedCount = document.getElementById('exposed-count');
+const infectedCount = document.getElementById('infected-count');
+const recoveredCount = document.getElementById('recovered-count');
+const deathCount = document.getElementById('death-count');
+
 const SUSCEPTIBLE = 'susceptible'; // 易感人群
 const EXPOSED = 'exposed';         // 已感染但在潜伏期的人群
 const INFECTED = 'infected';       // 感染人群 (有症状)
@@ -267,16 +272,11 @@ class SimulationArea {
     }
 
     // 更新UI显示
-    document.getElementById('susceptible-count').textContent = this.statistics.susceptible;
-    document.getElementById('exposed-count').textContent = this.statistics.exposed; // 显示潜伏期人数
-    document.getElementById('infected-count').textContent = this.statistics.infected;
-    document.getElementById('recovered-count').textContent = this.statistics.recovered;
-    document.getElementById('death-count').textContent = this.statistics.dead;
-    document.getElementById('new-infections-count').textContent = this.dailyNewInfectionsAccumulator;
-    document.getElementById('new-exposed-count').textContent = this.dailyNewExposedAccumulator; // 显示新增潜伏人数
-    document.getElementById('new-recovered-count').textContent = this.dailyNewRecoveredAccumulator;
-    document.getElementById('new-deaths-count').textContent = this.dailyNewDeathsAccumulator; // 显示新增死亡人数
-    document.getElementById('current-day').textContent = this.day; // 更新当前天数显示
+    susceptibleCount.textContent = this.statistics.susceptible;
+    exposedCount.textContent = this.statistics.exposed;
+    infectedCount.textContent = this.statistics.infected;
+    recoveredCount.textContent = this.statistics.recovered;
+    deathCount.textContent = this.statistics.dead;
   }
 
   recordDailyData() {
@@ -310,10 +310,6 @@ class SimulationArea {
 
     // 同步自动停止设置
     this.autoStopEnabled = params.autoStopEnabled;
-
-    // 更新所有人的位置和状态
-    const prevInfected = this.statistics.infected;
-    const prevSusceptible = this.statistics.susceptible;
 
     for (const person of this.people) {
       // 记录更新前的状态
