@@ -17,6 +17,7 @@ const simulationParams = {
   movementSpeed: 3,
   simulationSpeed: 5,
   quarantineEnabled: false,
+  avoidInfectedEnabled: true,
   autoStopEnabled: true,
   canvasSize: 500
 };
@@ -51,10 +52,19 @@ function setupEventListeners() {
   // 控制按钮
   document.getElementById('start-btn').addEventListener('click', () => {
     simulationArea.start();
+    // 如果动画帧ID为空，重新启动动画循环
+    if (!animationFrameId) {
+      startAnimationLoop();
+    }
   });
 
   document.getElementById('pause-btn').addEventListener('click', () => {
     simulationArea.pause();
+    // 取消动画帧
+    if (animationFrameId) {
+      cancelAnimationFrame(animationFrameId);
+      animationFrameId = null;
+    }
   });
 
   document.getElementById('reset-btn').addEventListener('click', () => {
@@ -62,6 +72,11 @@ function setupEventListeners() {
       simulationParams.populationSize,
       simulationParams.initialInfected
     );
+  });
+
+  // 快速模拟按钮
+  document.getElementById('fast-sim-btn').addEventListener('click', () => {
+    startFastSimulation();
   });
 
   // 人口参数
@@ -140,19 +155,18 @@ function setupEventListeners() {
     simulationSpeedValue.textContent = simulationParams.simulationSpeed;
   });
 
-  const quarantineCheckbox = document.getElementById('quarantine');
-
-  quarantineCheckbox.addEventListener('change', () => {
-    simulationParams.quarantineEnabled = quarantineCheckbox.checked;
+  // 隔离措施
+  const quarantineToggle = document.getElementById('quarantine');
+  quarantineToggle.addEventListener('change', () => {
+    simulationParams.quarantineEnabled = quarantineToggle.checked;
   });
 
   // 自动停止功能
-  const autoStopCheckbox = document.getElementById('auto-stop');
-
-  autoStopCheckbox.addEventListener('change', () => {
-    simulationParams.autoStopEnabled = autoStopCheckbox.checked;
+  const autoStopToggle = document.getElementById('auto-stop');
+  autoStopToggle.addEventListener('change', () => {
+    simulationParams.autoStopEnabled = autoStopToggle.checked;
     if (simulationArea) {
-      simulationArea.autoStopEnabled = autoStopCheckbox.checked;
+      simulationArea.autoStopEnabled = autoStopToggle.checked;
     }
   });
 
@@ -218,12 +232,150 @@ function startAnimationLoop() {
   animate();
 }
 
+// 快速模拟函数
+function startFastSimulation() {
+  // 暂停当前动画循环
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
+
+  // 重置模拟
+  simulationArea.reset(
+    simulationParams.populationSize,
+    simulationParams.initialInfected
+  );
+
+  // 显示加载指示器
+  const loadingIndicator = document.getElementById('loading-indicator');
+  const progressElement = document.getElementById('simulation-progress');
+  loadingIndicator.classList.add('active');
+
+  // 设置模拟参数
+  const params = {...simulationParams};
+
+  // 开始快速模拟过程（使用setTimeout以避免UI卡死）
+  setTimeout(() => {
+    runFastSimulation(params, progressElement, (result) => {
+      // 模拟完成后的回调
+      loadingIndicator.classList.remove('active');
+
+      // 确保模拟状态重置
+      simulationArea.pause();
+      simulationArea.frameCount = 0;
+
+      // 更新图表
+      const event = new CustomEvent('dataUpdated', { detail: simulationArea.historicalData });
+      document.dispatchEvent(event);
+
+      // 重新绘制画布
+      simulationArea.draw();
+
+      window.scrollTo(0, document.body.scrollHeight);
+    });
+  }, 100);
+}
+
+// 执行快速模拟
+function runFastSimulation(params, progressElement, callback) {
+  // 最大天数限制，防止无限循环
+  const MAX_DAYS = 365;
+
+  // 标记模拟运行
+  simulationArea.isRunning = true;
+
+  // 模拟循环
+  let day = 0;
+
+  function simulateNextBatch() {
+    // 每次批处理模拟10天
+    for (let i = 0; i < 10; i++) {
+      // 进行多次更新以模拟一天
+      for (let j = 0; j < 10; j++) {
+        simulationArea.update(params);
+      }
+
+      day++;
+      progressElement.textContent = day;
+
+      // 检查是否应该停止
+      let stopReason = null;
+      if (day >= MAX_DAYS) {
+        stopReason = "模拟已完成：达到最大模拟天数";
+      } else if (simulationArea.statistics.infected === 0 && simulationArea.statistics.exposed === 0) {
+        stopReason = "模拟已完成：没有活跃感染者和潜伏期者";
+      } else if (simulationArea.statistics.susceptible === 0 && simulationArea.statistics.infected === 0 && simulationArea.statistics.exposed === 0) {
+        stopReason = "模拟已完成：全部人口已被感染过";
+      }
+
+      if (stopReason) {
+        // 确保模拟停止
+        simulationArea.isRunning = false;
+
+        // 使用同样的通知方式显示结束信息
+        showNotification(stopReason);
+
+        // 调用回调并传递结果
+        callback({day: day, reason: stopReason});
+        return;
+      }
+    }
+
+    // 使用setTimeout允许UI更新
+    setTimeout(simulateNextBatch, 0);
+  }
+
+  // 开始批处理
+  simulateNextBatch();
+}
+
+// 显示通知函数
+function showNotification(message) {
+  // 创建通知元素
+  const notification = document.createElement('div');
+  notification.className = 'simulation-notification';
+
+  // 创建通知内容
+  const messageDiv = document.createElement('div');
+  messageDiv.className = 'message';
+  messageDiv.textContent = message;
+  notification.appendChild(messageDiv);
+
+  // 创建关闭按钮
+  const closeButton = document.createElement('button');
+  closeButton.className = 'close-notification';
+  closeButton.innerHTML = '<i class="fas fa-times"></i>';
+  closeButton.addEventListener('click', () => {
+    notification.classList.remove('show');
+    // 移除元素
+    setTimeout(() => {
+      notification.remove();
+    }, 500); // 等待过渡效果完成
+  });
+  notification.appendChild(closeButton);
+
+  // 添加到页面
+  document.body.appendChild(notification);
+
+  // 触发显示动画（使用延迟以确保过渡效果生效）
+  setTimeout(() => {
+    notification.classList.add('show');
+  }, 10);
+
+  // 5秒后自动隐藏
+  setTimeout(() => {
+    if (document.body.contains(notification)) {
+      notification.classList.remove('show');
+      setTimeout(() => {
+        if (document.body.contains(notification)) {
+          notification.remove();
+        }
+      }, 500);
+    }
+  }, 5000);
+}
+
 // 窗口加载完成后初始化
 window.addEventListener('load', () => {
   initialize();
-});
-
-// 窗口大小改变时调整画布大小
-window.addEventListener('resize', () => {
-  // 不需要自动调整画布尺寸了，由用户控制
 });

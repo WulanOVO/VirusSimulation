@@ -19,7 +19,7 @@ class Person {
     this.quarantined = false;
   }
 
-  move(speed, quarantineEnabled) {
+  move(speed, quarantineEnabled, avoidInfectedEnabled) {
     // 如果已死亡，不移动
     if (this.status === DEAD) return;
 
@@ -29,6 +29,50 @@ class Person {
     // 计算新位置
     let newX = this.x + this.dx * speed;
     let newY = this.y + this.dy * speed;
+
+    // 健康人群主动远离隔离中的病人
+    if (avoidInfectedEnabled && (this.status === SUSCEPTIBLE || this.status === EXPOSED || this.status === RECOVERED)) {
+      if (quarantineEnabled) {
+        const avoidanceForce = { x: 0, y: 0 };
+        const avoidanceRadius = 50; // 避开距离
+
+        for (const person of this.simulationArea.people) {
+          if (person === this || !(person.status === INFECTED && person.quarantined)) continue;
+
+          const dx = this.x - person.x;
+          const dy = this.y - person.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < avoidanceRadius) {
+            // 计算远离力，距离越近力越大
+            const force = (avoidanceRadius - distance) / avoidanceRadius;
+            // 标准化方向向量
+            const normalizedDx = dx / distance || 0;
+            const normalizedDy = dy / distance || 0;
+
+            avoidanceForce.x += normalizedDx * force * 2;
+            avoidanceForce.y += normalizedDy * force * 2;
+          }
+        }
+
+        // 应用避开力
+        if (Math.abs(avoidanceForce.x) > 0.01 || Math.abs(avoidanceForce.y) > 0.01) {
+          newX += avoidanceForce.x * speed;
+          newY += avoidanceForce.y * speed;
+
+          // 根据避开方向微调移动方向
+          this.dx = this.dx * 0.8 + avoidanceForce.x * 0.2;
+          this.dy = this.dy * 0.8 + avoidanceForce.y * 0.2;
+
+          // 保持移动向量归一化
+          const magnitude = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
+          if (magnitude > 0) {
+            this.dx /= magnitude;
+            this.dy /= magnitude;
+          }
+        }
+      }
+    }
 
     // 边界检查
     if (newX < this.radius || newX > this.simulationArea.width - this.radius) {
@@ -171,13 +215,9 @@ class SimulationArea {
   }
 
   initialize(populationSize, initialInfected) {
-    this.people = [];
-    this.day = 0;
-    this.historicalData = [];
-    this.dailyNewInfectionsAccumulator = 0; // 重置累计器
-    this.dailyNewExposedAccumulator = 0; // 重置潜伏累计器
-    this.dailyNewRecoveredAccumulator = 0; // 重置康复累计器
-    this.dailyNewDeathsAccumulator = 0; // 重置死亡累计器
+    // 这些值已经在reset方法中设置，这里不再重复
+    if(!this.people) this.people = [];
+    if(this.people.length > 0) this.people = [];
 
     // 创建初始人口
     for (let i = 0; i < populationSize; i++) {
@@ -189,7 +229,11 @@ class SimulationArea {
     }
 
     this.updateStatistics();
-    this.recordDailyData();
+
+    // 只有当历史数据为空时才记录，避免重复
+    if(this.historicalData.length === 0) {
+      this.recordDailyData();
+    }
   }
 
   updateStatistics() {
@@ -278,7 +322,8 @@ class SimulationArea {
       // 移动
       person.move(
         params.movementSpeed,
-        params.quarantineEnabled
+        params.quarantineEnabled,
+        params.avoidInfectedEnabled
       );
 
       // 检查传染
@@ -373,7 +418,11 @@ class SimulationArea {
   autoStop(message) {
     this.pause();
     this.stoppedAutomatically = true;
-    alert(message);
+
+    // 使用全局通知函数
+    if (typeof showNotification === 'function') {
+      showNotification(message);
+    }
   }
 
   // 调整场地尺寸
@@ -440,14 +489,26 @@ class SimulationArea {
   reset(populationSize, initialInfected) {
     this.pause();
     this.stoppedAutomatically = false; // 重置自动停止标记
+    this.frameCount = 0; // 重置帧计数器
+    this.day = 0; // 明确重置天数
     this.dailyNewInfectionsAccumulator = 0; // 重置新增感染累计器
     this.dailyNewExposedAccumulator = 0; // 重置新增潜伏累计器
     this.dailyNewRecoveredAccumulator = 0; // 重置康复累计器
     this.dailyNewDeathsAccumulator = 0; // 重置新增死亡累计器
+
+    // 重置历史数据和重新初始化人口
+    this.historicalData = [];
+    this.people = [];
     this.initialize(populationSize, initialInfected);
 
     // 移除可能存在的自动停止提示
     const existingAlerts = document.querySelectorAll('.auto-stop-alert');
     existingAlerts.forEach(alert => alert.remove());
+
+    // 确保UI更新
+    this.updateStatistics();
+
+    // 重新绘制场景
+    this.draw();
   }
 }

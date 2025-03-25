@@ -21,8 +21,8 @@ class ChartManager {
             data: [],
             borderColor: '#3498db',
             backgroundColor: 'rgba(52, 152, 219, 0.1)',
-            borderWidth: 2,
             fill: true,
+            pointRadius: 0,
             tension: 0.4
           },
           {
@@ -30,8 +30,8 @@ class ChartManager {
             data: [],
             borderColor: '#f39c12',
             backgroundColor: 'rgba(243, 156, 18, 0.1)',
-            borderWidth: 2,
             fill: true,
+            pointRadius: 0,
             tension: 0.4
           },
           {
@@ -39,8 +39,8 @@ class ChartManager {
             data: [],
             borderColor: '#e74c3c',
             backgroundColor: 'rgba(231, 76, 60, 0.1)',
-            borderWidth: 2,
             fill: true,
+            pointRadius: 0,
             tension: 0.4
           },
           {
@@ -48,8 +48,8 @@ class ChartManager {
             data: [],
             borderColor: '#2ecc71',
             backgroundColor: 'rgba(46, 204, 113, 0.1)',
-            borderWidth: 2,
             fill: true,
+            pointRadius: 0,
             tension: 0.4
           },
           {
@@ -57,8 +57,8 @@ class ChartManager {
             data: [],
             borderColor: '#7f8c8d',
             backgroundColor: 'rgba(127, 140, 141, 0.1)',
-            borderWidth: 2,
             fill: true,
+            pointRadius: 0,
             tension: 0.4
           }
         ]
@@ -77,6 +77,10 @@ class ChartManager {
           },
           legend: {
             position: 'top',
+            labels: {
+              usePointStyle: false,
+              padding: 20
+            }
           }
         },
         scales: {
@@ -136,6 +140,10 @@ class ChartManager {
           },
           legend: {
             position: 'top',
+            labels: {
+              usePointStyle: false,
+              padding: 20
+            }
           }
         },
         scales: {
@@ -195,6 +203,10 @@ class ChartManager {
           },
           legend: {
             position: 'top',
+            labels: {
+              usePointStyle: false,
+              padding: 20
+            }
           }
         },
         scales: {
