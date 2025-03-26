@@ -6,11 +6,20 @@ class ChartManager {
     this.newCasesChart = null;  // 修改为每日新增传播指标图表
     this.healthOutcomesChart = null;  // 添加每日健康结果指标图表
     this.initialized = false;
+
+    // 设置更高的设备像素比以提高图表清晰度
+    Chart.defaults.devicePixelRatio = 2;
+    // 优化字体渲染
+    Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
   }
 
   initialize() {
     // 初始化人口分布图表
     const populationChartCtx = document.getElementById('population-chart').getContext('2d');
+    // 设置画布DPI
+    const populationCanvas = document.getElementById('population-chart');
+    setHighDPI(populationCanvas);
+
     this.populationChart = new Chart(populationChartCtx, {
       type: 'line',
       data: {
@@ -23,7 +32,8 @@ class ChartManager {
             backgroundColor: 'rgba(52, 152, 219, 0.1)',
             fill: true,
             pointRadius: 0,
-            tension: 0.4
+            tension: 0.4,
+            borderWidth: 2 // 增加线宽使线条更清晰
           },
           {
             label: '潜伏人群',
@@ -32,7 +42,8 @@ class ChartManager {
             backgroundColor: 'rgba(243, 156, 18, 0.1)',
             fill: true,
             pointRadius: 0,
-            tension: 0.4
+            tension: 0.4,
+            borderWidth: 2
           },
           {
             label: '感染人群',
@@ -41,7 +52,8 @@ class ChartManager {
             backgroundColor: 'rgba(231, 76, 60, 0.1)',
             fill: true,
             pointRadius: 0,
-            tension: 0.4
+            tension: 0.4,
+            borderWidth: 2
           },
           {
             label: '恢复人群',
@@ -50,7 +62,8 @@ class ChartManager {
             backgroundColor: 'rgba(46, 204, 113, 0.1)',
             fill: true,
             pointRadius: 0,
-            tension: 0.4
+            tension: 0.4,
+            borderWidth: 2
           },
           {
             label: '死亡人数',
@@ -59,17 +72,19 @@ class ChartManager {
             backgroundColor: 'rgba(127, 140, 141, 0.1)',
             fill: true,
             pointRadius: 0,
-            tension: 0.4
+            tension: 0.4,
+            borderWidth: 2
           }
         ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        devicePixelRatio: 2, // 设置更高的DPI
         plugins: {
           title: {
             display: true,
-            text: '人口分布趋势',
+            text: '人群分布趋势',
             font: {
               size: 18,
               weight: 'bold'
@@ -83,7 +98,10 @@ class ChartManager {
             position: 'top',
             labels: {
               usePointStyle: false,
-              padding: 20
+              padding: 20,
+              font: {
+                weight: 'bold' // 让图例文字更清晰
+              }
             }
           }
         },
@@ -93,6 +111,14 @@ class ChartManager {
             title: {
               display: true,
               text: '天数'
+            },
+            grid: {
+              lineWidth: 1.5 // 增加网格线宽度
+            },
+            ticks: {
+              font: {
+                weight: '500' // 使刻度更清晰
+              }
             }
           },
           y: {
@@ -101,7 +127,15 @@ class ChartManager {
               display: true,
               text: '人数'
             },
-            min: 0
+            min: 0,
+            grid: {
+              lineWidth: 1.5
+            },
+            ticks: {
+              font: {
+                weight: '500'
+              }
+            }
           }
         }
       }
@@ -109,6 +143,9 @@ class ChartManager {
 
     // 初始化每日新增传播指标图表
     const newCasesChartCtx = document.getElementById('new-cases-chart').getContext('2d');
+    const newCasesCanvas = document.getElementById('new-cases-chart');
+    setHighDPI(newCasesCanvas);
+
     this.newCasesChart = new Chart(newCasesChartCtx, {
       type: 'bar',
       data: {
@@ -119,20 +156,21 @@ class ChartManager {
             data: [],
             backgroundColor: 'rgba(243, 156, 18, 0.7)',
             borderColor: '#f39c12',
-            borderWidth: 1
+            borderWidth: 1.5
           },
           {
             label: '每日新增发病',
             data: [],
             backgroundColor: 'rgba(231, 76, 60, 0.7)',
             borderColor: '#e74c3c',
-            borderWidth: 1
+            borderWidth: 1.5
           }
         ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        devicePixelRatio: 2,
         plugins: {
           title: {
             display: true,
@@ -150,7 +188,10 @@ class ChartManager {
             position: 'top',
             labels: {
               usePointStyle: false,
-              padding: 20
+              padding: 20,
+              font: {
+                weight: 'bold'
+              }
             }
           }
         },
@@ -160,6 +201,14 @@ class ChartManager {
             title: {
               display: true,
               text: '天数'
+            },
+            grid: {
+              lineWidth: 1.5
+            },
+            ticks: {
+              font: {
+                weight: '500'
+              }
             }
           },
           y: {
@@ -168,7 +217,15 @@ class ChartManager {
               display: true,
               text: '人数'
             },
-            min: 0
+            min: 0,
+            grid: {
+              lineWidth: 1.5
+            },
+            ticks: {
+              font: {
+                weight: '500'
+              }
+            }
           }
         }
       }
@@ -176,6 +233,9 @@ class ChartManager {
 
     // 初始化每日健康结果指标图表
     const healthOutcomesChartCtx = document.getElementById('health-outcomes-chart').getContext('2d');
+    const healthOutcomesCanvas = document.getElementById('health-outcomes-chart');
+    setHighDPI(healthOutcomesCanvas);
+
     this.healthOutcomesChart = new Chart(healthOutcomesChartCtx, {
       type: 'bar',
       data: {
@@ -186,20 +246,21 @@ class ChartManager {
             data: [],
             backgroundColor: 'rgba(22, 160, 133, 0.7)',
             borderColor: '#16a085',
-            borderWidth: 1
+            borderWidth: 1.5
           },
           {
             label: '每日死亡人数',
             data: [],
             backgroundColor: 'rgba(127, 140, 141, 0.7)',
             borderColor: '#7f8c8d',
-            borderWidth: 1
+            borderWidth: 1.5
           }
         ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        devicePixelRatio: 2,
         plugins: {
           title: {
             display: true,
@@ -217,7 +278,10 @@ class ChartManager {
             position: 'top',
             labels: {
               usePointStyle: false,
-              padding: 20
+              padding: 20,
+              font: {
+                weight: 'bold'
+              }
             }
           }
         },
@@ -227,6 +291,14 @@ class ChartManager {
             title: {
               display: true,
               text: '天数'
+            },
+            grid: {
+              lineWidth: 1.5
+            },
+            ticks: {
+              font: {
+                weight: '500'
+              }
             }
           },
           y: {
@@ -235,7 +307,15 @@ class ChartManager {
               display: true,
               text: '人数'
             },
-            min: 0
+            min: 0,
+            grid: {
+              lineWidth: 1.5
+            },
+            ticks: {
+              font: {
+                weight: '500'
+              }
+            }
           }
         }
       }
@@ -285,4 +365,11 @@ class ChartManager {
     this.healthOutcomesChart.data.datasets[1].data = newDeathsData;
     this.healthOutcomesChart.update();
   }
+}
+
+function setHighDPI(canvas) {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
 }

@@ -95,6 +95,15 @@ button {
     background-color: #c0392b;
 }
 
+.fast-sim-btn {
+    background-color: #646464;
+    color: white;
+}
+
+.fast-sim-btn:hover {
+    background-color: #474747;
+}
+
 #apply-size-btn {
     background-color: #3498db;
     color: white;
@@ -252,25 +261,21 @@ button {
 
 .chart-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
     margin-bottom: 10px;
     position: relative;
     z-index: 1;
 }
 
-.chart-header h3 {
-    color: #2c3e50;
-    font-size: 1.2rem;
-    margin: 0;
-}
-
-.chart canvas {
+.chart canvas,
+.fullscreen-chart canvas {
     position: absolute;
-    top: 50px;
-    left: 0;
-    width: 100% !important;
-    height: calc(100% - 50px) !important;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(100% - 30px) !important;
+    height: calc(100% - 30px) !important;
 }
 
 .expand-btn, .close-btn {
@@ -314,7 +319,7 @@ button {
 
 .fullscreen-content {
     background-color: white;
-    padding: 20px;
+    padding: 15px;
     border-radius: 8px;
     width: 90%;
     height: 60%;
@@ -322,29 +327,6 @@ button {
     flex-direction: column;
     position: relative;
     overflow: hidden;
-}
-
-.fullscreen-content canvas {
-    position: absolute;
-    top: 50px;
-    left: 0;
-    width: 100% !important;
-    height: calc(100% - 50px) !important;
-}
-
-.fast-sim-btn {
-    background-color: #646464;
-    color: white;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
-    transition: background-color 0.3s;
-}
-
-.fast-sim-btn:hover {
-    background-color: #474747;
 }
 
 /* 添加模拟过程中的加载指示器 */
