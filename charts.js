@@ -7,10 +7,10 @@ class ChartManager {
     this.healthOutcomesChart = null;  // 添加每日健康结果指标图表
     this.initialized = false;
 
-    // 设置更高的设备像素比以提高图表清晰度
-    Chart.defaults.devicePixelRatio = 2;
-    // 优化字体渲染
-    Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+    Chart.defaults.devicePixelRatio = 3;
+    Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif';
+    Chart.defaults.font.weight = '500';
+    Chart.defaults.color = '#34495e';
   }
 
   initialize() {
@@ -19,6 +19,9 @@ class ChartManager {
     // 设置画布DPI
     const populationCanvas = document.getElementById('population-chart');
     setHighDPI(populationCanvas);
+
+    // 添加渐变背景色
+    const gradients = this.createGradients(populationChartCtx);
 
     this.populationChart = new Chart(populationChartCtx, {
       type: 'line',
@@ -29,18 +32,18 @@ class ChartManager {
             label: '易感人群',
             data: [],
             borderColor: '#3498db',
-            backgroundColor: 'rgba(52, 152, 219, 0.1)',
-            fill: true,
+            backgroundColor: gradients.susceptible,
+            fill: false,
             pointRadius: 0,
             tension: 0.4,
-            borderWidth: 2 // 增加线宽使线条更清晰
+            borderWidth: 2
           },
           {
             label: '潜伏人群',
             data: [],
             borderColor: '#f39c12',
-            backgroundColor: 'rgba(243, 156, 18, 0.1)',
-            fill: true,
+            backgroundColor: gradients.exposed,
+            fill: false,
             pointRadius: 0,
             tension: 0.4,
             borderWidth: 2
@@ -49,8 +52,8 @@ class ChartManager {
             label: '感染人群',
             data: [],
             borderColor: '#e74c3c',
-            backgroundColor: 'rgba(231, 76, 60, 0.1)',
-            fill: true,
+            backgroundColor: gradients.infected,
+            fill: false,
             pointRadius: 0,
             tension: 0.4,
             borderWidth: 2
@@ -59,8 +62,8 @@ class ChartManager {
             label: '恢复人群',
             data: [],
             borderColor: '#2ecc71',
-            backgroundColor: 'rgba(46, 204, 113, 0.1)',
-            fill: true,
+            backgroundColor: gradients.recovered,
+            fill: false,
             pointRadius: 0,
             tension: 0.4,
             borderWidth: 2
@@ -69,8 +72,8 @@ class ChartManager {
             label: '死亡人数',
             data: [],
             borderColor: '#7f8c8d',
-            backgroundColor: 'rgba(127, 140, 141, 0.1)',
-            fill: true,
+            backgroundColor: gradients.dead,
+            fill: false,
             pointRadius: 0,
             tension: 0.4,
             borderWidth: 2
@@ -80,7 +83,11 @@ class ChartManager {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        devicePixelRatio: 2, // 设置更高的DPI
+        interaction: {
+          mode: 'nearest',
+          axis: 'x',
+          intersect: false
+        },
         plugins: {
           title: {
             display: true,
@@ -88,19 +95,46 @@ class ChartManager {
             font: {
               size: 18,
               weight: 'bold'
+            },
+            padding: {
+              top: 10,
+              bottom: 15
             }
           },
           tooltip: {
             mode: 'index',
-            intersect: false
+            intersect: false,
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            titleColor: '#2c3e50',
+            bodyColor: '#2c3e50',
+            borderColor: '#ddd',
+            borderWidth: 1,
+            cornerRadius: 6,
+            padding: 10,
+            boxPadding: 6,
+            usePointStyle: true,
+            callbacks: {
+              label: function(context) {
+                let label = context.dataset.label || '';
+                if (label) {
+                  label += ': ';
+                }
+                label += context.parsed.y.toLocaleString() + ' 人';
+                return label;
+              }
+            }
           },
           legend: {
             position: 'top',
+            align: 'center',
             labels: {
-              usePointStyle: false,
+              usePointStyle: true,
               padding: 20,
+              boxWidth: 10,
+              boxHeight: 10,
               font: {
-                weight: 'bold' // 让图例文字更清晰
+                weight: 'bold',
+                size: 13
               }
             }
           }
@@ -110,30 +144,49 @@ class ChartManager {
             display: true,
             title: {
               display: true,
-              text: '天数'
+              text: '天数',
+              font: {
+                weight: 'bold',
+                size: 14
+              },
+              padding: { top: 10, bottom: 5 }
             },
             grid: {
-              lineWidth: 1.5 // 增加网格线宽度
+              lineWidth: 1,
+              color: 'rgba(0, 0, 0, 0.05)'
             },
             ticks: {
               font: {
-                weight: '500' // 使刻度更清晰
-              }
+                weight: '600',
+                size: 12
+              },
+              padding: 8
             }
           },
           y: {
             display: true,
             title: {
               display: true,
-              text: '人数'
+              text: '人数',
+              font: {
+                weight: 'bold',
+                size: 14
+              },
+              padding: { top: 0, left: 0, right: 10, bottom: 0 }
             },
             min: 0,
             grid: {
-              lineWidth: 1.5
+              lineWidth: 1,
+              color: 'rgba(0, 0, 0, 0.05)'
             },
             ticks: {
               font: {
-                weight: '500'
+                weight: '600',
+                size: 12
+              },
+              padding: 8,
+              callback: function(value) {
+                return value.toLocaleString();
               }
             }
           }
@@ -154,23 +207,30 @@ class ChartManager {
           {
             label: '每日新增暴露',
             data: [],
-            backgroundColor: 'rgba(243, 156, 18, 0.7)',
+            backgroundColor: 'rgba(243, 156, 18, 0.8)',
             borderColor: '#f39c12',
-            borderWidth: 1.5
+            borderWidth: 2,
+            borderRadius: 4,
+            hoverBackgroundColor: 'rgba(243, 156, 18, 0.95)'
           },
           {
             label: '每日新增发病',
             data: [],
-            backgroundColor: 'rgba(231, 76, 60, 0.7)',
+            backgroundColor: 'rgba(231, 76, 60, 0.8)',
             borderColor: '#e74c3c',
-            borderWidth: 1.5
+            borderWidth: 2,
+            borderRadius: 4,
+            hoverBackgroundColor: 'rgba(231, 76, 60, 0.95)'
           }
         ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        devicePixelRatio: 2,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
         plugins: {
           title: {
             display: true,
@@ -178,19 +238,46 @@ class ChartManager {
             font: {
               size: 18,
               weight: 'bold'
+            },
+            padding: {
+              top: 10,
+              bottom: 15
             }
           },
           tooltip: {
             mode: 'index',
-            intersect: false
+            intersect: false,
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            titleColor: '#2c3e50',
+            bodyColor: '#2c3e50',
+            borderColor: '#ddd',
+            borderWidth: 1,
+            cornerRadius: 6,
+            padding: 10,
+            boxPadding: 6,
+            usePointStyle: true,
+            callbacks: {
+              label: function(context) {
+                let label = context.dataset.label || '';
+                if (label) {
+                  label += ': ';
+                }
+                label += context.parsed.y.toLocaleString() + ' 人';
+                return label;
+              }
+            }
           },
           legend: {
             position: 'top',
+            align: 'center',
             labels: {
-              usePointStyle: false,
+              usePointStyle: true,
               padding: 20,
+              boxWidth: 10,
+              boxHeight: 10,
               font: {
-                weight: 'bold'
+                weight: 'bold',
+                size: 13
               }
             }
           }
@@ -200,30 +287,48 @@ class ChartManager {
             display: true,
             title: {
               display: true,
-              text: '天数'
+              text: '天数',
+              font: {
+                weight: 'bold',
+                size: 14
+              },
+              padding: { top: 10, bottom: 5 }
             },
             grid: {
-              lineWidth: 1.5
+              display: false
             },
             ticks: {
               font: {
-                weight: '500'
-              }
+                weight: '600',
+                size: 12
+              },
+              padding: 8
             }
           },
           y: {
             display: true,
             title: {
               display: true,
-              text: '人数'
+              text: '人数',
+              font: {
+                weight: 'bold',
+                size: 14
+              },
+              padding: { top: 0, left: 0, right: 10, bottom: 0 }
             },
             min: 0,
             grid: {
-              lineWidth: 1.5
+              lineWidth: 1,
+              color: 'rgba(0, 0, 0, 0.05)'
             },
             ticks: {
               font: {
-                weight: '500'
+                weight: '600',
+                size: 12
+              },
+              padding: 8,
+              callback: function(value) {
+                return value.toLocaleString();
               }
             }
           }
@@ -244,23 +349,30 @@ class ChartManager {
           {
             label: '每日康复人数',
             data: [],
-            backgroundColor: 'rgba(22, 160, 133, 0.7)',
+            backgroundColor: 'rgba(22, 160, 133, 0.8)',
             borderColor: '#16a085',
-            borderWidth: 1.5
+            borderWidth: 2,
+            borderRadius: 4,
+            hoverBackgroundColor: 'rgba(22, 160, 133, 0.95)'
           },
           {
             label: '每日死亡人数',
             data: [],
-            backgroundColor: 'rgba(127, 140, 141, 0.7)',
+            backgroundColor: 'rgba(127, 140, 141, 0.8)',
             borderColor: '#7f8c8d',
-            borderWidth: 1.5
+            borderWidth: 2,
+            borderRadius: 4,
+            hoverBackgroundColor: 'rgba(127, 140, 141, 0.95)'
           }
         ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        devicePixelRatio: 2,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
         plugins: {
           title: {
             display: true,
@@ -268,19 +380,46 @@ class ChartManager {
             font: {
               size: 18,
               weight: 'bold'
+            },
+            padding: {
+              top: 10,
+              bottom: 15
             }
           },
           tooltip: {
             mode: 'index',
-            intersect: false
+            intersect: false,
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            titleColor: '#2c3e50',
+            bodyColor: '#2c3e50',
+            borderColor: '#ddd',
+            borderWidth: 1,
+            cornerRadius: 6,
+            padding: 10,
+            boxPadding: 6,
+            usePointStyle: true,
+            callbacks: {
+              label: function(context) {
+                let label = context.dataset.label || '';
+                if (label) {
+                  label += ': ';
+                }
+                label += context.parsed.y.toLocaleString() + ' 人';
+                return label;
+              }
+            }
           },
           legend: {
             position: 'top',
+            align: 'center',
             labels: {
-              usePointStyle: false,
+              usePointStyle: true,
               padding: 20,
+              boxWidth: 10,
+              boxHeight: 10,
               font: {
-                weight: 'bold'
+                weight: 'bold',
+                size: 13
               }
             }
           }
@@ -290,30 +429,48 @@ class ChartManager {
             display: true,
             title: {
               display: true,
-              text: '天数'
+              text: '天数',
+              font: {
+                weight: 'bold',
+                size: 14
+              },
+              padding: { top: 10, bottom: 5 }
             },
             grid: {
-              lineWidth: 1.5
+              display: false
             },
             ticks: {
               font: {
-                weight: '500'
-              }
+                weight: '600',
+                size: 12
+              },
+              padding: 8
             }
           },
           y: {
             display: true,
             title: {
               display: true,
-              text: '人数'
+              text: '人数',
+              font: {
+                weight: 'bold',
+                size: 14
+              },
+              padding: { top: 0, left: 0, right: 10, bottom: 0 }
             },
             min: 0,
             grid: {
-              lineWidth: 1.5
+              lineWidth: 1,
+              color: 'rgba(0, 0, 0, 0.05)'
             },
             ticks: {
               font: {
-                weight: '500'
+                weight: '600',
+                size: 12
+              },
+              padding: 8,
+              callback: function(value) {
+                return value.toLocaleString();
               }
             }
           }
@@ -327,6 +484,47 @@ class ChartManager {
     document.addEventListener('dataUpdated', (event) => {
       this.updateCharts(event.detail);
     });
+
+    // 监听窗口大小变化，更新图表
+    window.addEventListener('resize', () => {
+      this.resizeCharts();
+    });
+  }
+
+  // 创建渐变背景色
+  createGradients(ctx) {
+    return {
+      susceptible: this.createGradient(ctx, '#3498db', 0.3),
+      exposed: this.createGradient(ctx, '#f39c12', 0.3),
+      infected: this.createGradient(ctx, '#e74c3c', 0.3),
+      recovered: this.createGradient(ctx, '#2ecc71', 0.3),
+      dead: this.createGradient(ctx, '#7f8c8d', 0.3)
+    };
+  }
+
+  // 创建渐变对象
+  createGradient(ctx, color, alpha) {
+    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, color.replace(')', `, ${alpha})`).replace('rgb', 'rgba'));
+    gradient.addColorStop(1, color.replace(')', ', 0)').replace('rgb', 'rgba'));
+    return gradient;
+  }
+
+  // 响应窗口大小变化更新图表
+  resizeCharts() {
+    if (!this.initialized) return;
+
+    const canvases = [
+      document.getElementById('population-chart'),
+      document.getElementById('new-cases-chart'),
+      document.getElementById('health-outcomes-chart')
+    ];
+
+    canvases.forEach(canvas => setHighDPI(canvas));
+
+    if (this.populationChart) this.populationChart.resize();
+    if (this.newCasesChart) this.newCasesChart.resize();
+    if (this.healthOutcomesChart) this.healthOutcomesChart.resize();
   }
 
   updateCharts(historicalData) {
@@ -372,4 +570,12 @@ function setHighDPI(canvas) {
   const rect = canvas.getBoundingClientRect();
   canvas.width = rect.width * dpr;
   canvas.height = rect.height * dpr;
+
+  // 设置绘图上下文缩放
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  // 重置样式宽度和高度
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
 }
