@@ -126,18 +126,21 @@
         <div class="charts-container">
           <div class="chart">
             <div class="chart-header">
+              <button class="download-btn" data-chart="population" title="下载"><i class="fas fa-download"></i></button>
               <button class="expand-btn" data-chart="population" title="放大"><i class="fas fa-expand"></i></button>
             </div>
             <canvas id="population-chart"></canvas>
           </div>
           <div class="chart">
             <div class="chart-header">
+              <button class="download-btn" data-chart="new-cases" title="下载"><i class="fas fa-download"></i></button>
               <button class="expand-btn" data-chart="new-cases" title="放大"><i class="fas fa-expand"></i></button>
             </div>
             <canvas id="new-cases-chart"></canvas>
           </div>
           <div class="chart">
             <div class="chart-header">
+              <button class="download-btn" data-chart="health-outcomes" title="下载"><i class="fas fa-download"></i></button>
               <button class="expand-btn" data-chart="health-outcomes" title="放大"><i class="fas fa-expand"></i></button>
             </div>
             <canvas id="health-outcomes-chart"></canvas>
@@ -151,6 +154,7 @@
   <div id="fullscreen-chart" class="fullscreen-chart">
     <div class="fullscreen-content">
       <div class="chart-header">
+        <button class="download-fullscreen-btn" title="下载"><i class="fas fa-download"></i></button>
         <button class="close-btn"><i class="fas fa-times"></i></button>
       </div>
       <canvas id="fullscreen-canvas"></canvas>
@@ -167,7 +171,6 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="simulation.js"></script>
   <script src="charts.js"></script>
-  <script src="chart-expand.js"></script>
   <script src="main.js"></script>
 </body>
 

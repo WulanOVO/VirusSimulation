@@ -1,4 +1,3 @@
-// 全局变量
 let simulationArea;
 let chartManager;
 let animationFrameId;

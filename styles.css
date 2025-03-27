@@ -266,6 +266,7 @@ button {
     margin-bottom: 10px;
     position: relative;
     z-index: 1;
+    gap: 5px;
 }
 
 .chart canvas,
@@ -278,7 +279,7 @@ button {
     height: calc(100% - 30px) !important;
 }
 
-.expand-btn, .close-btn {
+.expand-btn, .close-btn, .download-btn, .download-fullscreen-btn {
     color: #606060;
     padding: 8px;
     border: none;
@@ -296,7 +297,7 @@ button {
     z-index: 2;
 }
 
-.expand-btn:hover, .close-btn:hover {
+.expand-btn:hover, .close-btn:hover, .download-btn:hover, .download-fullscreen-btn:hover {
     background-color: #c4c4c4;
 }
 

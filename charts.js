@@ -7,13 +7,11 @@ class ChartManager {
     this.healthOutcomesChart = null;  // 添加每日健康结果指标图表
     this.initialized = false;
 
-    // 设置Chart.js全局默认值
     Chart.defaults.devicePixelRatio = 3;
     Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif';
     Chart.defaults.font.weight = '500';
     Chart.defaults.color = '#34495e';
 
-    // 创建基础配置，避免重复代码
     this.baseChartOptions = {
       responsive: true,
       maintainAspectRatio: false,
@@ -340,3 +338,197 @@ class ChartManager {
     this.healthOutcomesChart.update();
   }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  const fullscreenChart = document.getElementById('fullscreen-chart');
+  const fullscreenCanvas = document.getElementById('fullscreen-canvas');
+  const closeBtn = document.querySelector('.close-btn');
+  const downloadFullscreenBtn = document.querySelector('.download-fullscreen-btn');
+  let currentChart = null;
+
+  // 字体大小默认配置
+  const fontSizes = {
+    title: 24,
+    legend: 16,
+    ticksLabel: 14,
+    axisTitle: 16
+  };
+
+  // 创建增强的字体配置函数
+  function createEnhancedFontConfig(originalFont = {}, size = 16, weight = 'bold') {
+    return {
+      ...originalFont,
+      size,
+      weight
+    };
+  }
+
+  // 创建增强的图表配置
+  function createEnhancedChartOptions(originalOptions) {
+    return {
+      ...originalOptions,
+      maintainAspectRatio: false,
+      responsive: true,
+      devicePixelRatio: 3.5,
+      plugins: {
+        ...originalOptions.plugins,
+        title: {
+          ...originalOptions.plugins.title,
+          font: createEnhancedFontConfig(originalOptions.plugins.title.font, fontSizes.title)
+        },
+        legend: {
+          ...originalOptions.plugins.legend,
+          labels: {
+            ...originalOptions.plugins.legend.labels,
+            font: createEnhancedFontConfig({}, fontSizes.legend)
+          }
+        }
+      },
+      scales: {
+        x: {
+          ...originalOptions.scales.x,
+          ticks: {
+            ...originalOptions.scales.x.ticks,
+            font: createEnhancedFontConfig({}, fontSizes.ticksLabel, '500')
+          },
+          title: {
+            ...originalOptions.scales.x.title,
+            font: createEnhancedFontConfig({}, fontSizes.axisTitle)
+          }
+        },
+        y: {
+          ...originalOptions.scales.y,
+          ticks: {
+            ...originalOptions.scales.y.ticks,
+            font: createEnhancedFontConfig({}, fontSizes.ticksLabel, '500')
+          },
+          title: {
+            ...originalOptions.scales.y.title,
+            font: createEnhancedFontConfig({}, fontSizes.axisTitle)
+          }
+        }
+      }
+    };
+  }
+
+  // 下载图表函数
+  function downloadChart(chartCanvas, filename) {
+    const tempCanvas = document.createElement('canvas');
+    const tempCtx = tempCanvas.getContext('2d');
+
+    const width = 1600;
+    const height = 900;
+    const scale = 2;
+
+    const scaledWidth = Math.round(width / scale);
+    const scaledHeight = Math.round(height / scale);
+
+    tempCanvas.width = scaledWidth;
+    tempCanvas.height = scaledHeight;
+
+    // 获取原始图表实例
+    const chartInstance = Chart.getChart(chartCanvas);
+    if (!chartInstance) return;
+
+    // 临时克隆图表配置
+    const tempChart = new Chart(tempCtx, {
+      type: chartInstance.config.type,
+      data: JSON.parse(JSON.stringify(chartInstance.data)),
+      options: {
+        ...JSON.parse(JSON.stringify(chartInstance.options)),
+        devicePixelRatio: scale,
+        animation: false,
+        responsive: false,
+        maintainAspectRatio: false,
+      }
+    });
+
+    // 渲染临时图表
+    tempChart.resize(scaledWidth, scaledHeight);
+    tempChart.draw();
+
+    // 创建下载链接
+    const link = document.createElement('a');
+    link.download = `${filename}.png`;
+    link.href = tempCanvas.toDataURL('image/png');
+
+    // 模拟点击链接下载
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // 销毁临时图表
+    tempChart.destroy();
+  }
+
+  // 为所有下载按钮添加点击事件
+  document.querySelectorAll('.download-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const chartTitle = this.dataset.chart;
+      const originalCanvas = document.getElementById(`${chartTitle}-chart`);
+
+      // 获取原始图表实例
+      const chartInstance = Chart.getChart(originalCanvas);
+      if (chartInstance) {
+        const title = chartInstance.options.plugins.title.text || chartTitle;
+        const time = new Date().toLocaleString();
+        downloadChart(originalCanvas, `${title}-${time}`);
+      }
+    });
+  });
+
+  // 下载全屏图表按钮点击事件
+  downloadFullscreenBtn.addEventListener('click', function() {
+    if (currentChart) {
+      const title = currentChart.options.plugins.title.text || 'chart';
+      const time = new Date().toLocaleString();
+      downloadChart(fullscreenCanvas, `${title}-${time}`);
+    }
+  });
+
+  // 为所有放大按钮添加点击事件
+  document.querySelectorAll('.expand-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const chartType = this.dataset.chart;
+      const originalCanvas = document.getElementById(`${chartType}-chart`);
+
+      // 获取原始图表实例
+      const chartInstance = Chart.getChart(originalCanvas);
+      if (chartInstance) {
+        showFullscreenChart(chartInstance);
+      }
+    });
+  });
+
+  // 显示全屏图表
+  function showFullscreenChart(chartInstance) {
+    // 显示全屏容器
+    fullscreenChart.classList.add('active');
+
+    // 创建新的图表实例
+    currentChart = new Chart(fullscreenCanvas, {
+      type: chartInstance.config.type,
+      data: chartInstance.config.data,
+      options: createEnhancedChartOptions(chartInstance.config.options)
+    });
+  }
+
+  // 关闭全屏图表的函数
+  function closeFullscreenChart() {
+    fullscreenChart.classList.remove('active');
+    if (currentChart) {
+      currentChart.destroy();
+      currentChart = null;
+    }
+  }
+
+  // 关闭按钮点击事件
+  closeBtn.addEventListener('click', closeFullscreenChart);
+
+  // ESC键关闭全屏
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && fullscreenChart.classList.contains('active')) {
+      closeFullscreenChart();
+    }
+  });
+});

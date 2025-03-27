@@ -203,7 +203,7 @@ class SimulationArea {
     this.frameCount = 0;
     this.statistics = {
       susceptible: 0,
-      exposed: 0, // 新增的潜伏期统计
+      exposed: 0,
       infected: 0,
       recovered: 0,
       dead: 0,
@@ -220,7 +220,6 @@ class SimulationArea {
   }
 
   initialize(populationSize, initialInfected) {
-    // 这些值已经在reset方法中设置，这里不再重复
     if(!this.people) this.people = [];
     if(this.people.length > 0) this.people = [];
 
