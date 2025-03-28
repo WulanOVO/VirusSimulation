@@ -4,45 +4,57 @@ const infectedCount = document.getElementById('infected-count');
 const recoveredCount = document.getElementById('recovered-count');
 const deathCount = document.getElementById('death-count');
 
-const SUSCEPTIBLE = 'susceptible'; // 易感人群
-const EXPOSED = 'exposed';         // 已感染但在潜伏期的人群
-const INFECTED = 'infected';       // 感染人群 (有症状)
-const RECOVERED = 'recovered';     // 恢复人群
-const DEAD = 'dead';               // 死亡人群
+// 传染病模型状态常量
+const STATUS = {
+  SUSCEPTIBLE: 'susceptible', // 易感人群 - 健康但可能被感染的人群
+  EXPOSED: 'exposed',         // 暴露人群 - 已感染但处于潜伏期的人群，可能具有低传染性
+  INFECTED: 'infected',       // 感染人群 - 表现出明显症状且具有高传染性的人群
+  RECOVERED: 'recovered',     // 康复人群 - 已恢复并可能获得免疫力的人群
+  DEAD: 'dead'                // 死亡人群 - 因感染死亡的人群
+};
+
+// 各状态对应的颜色
+const STATUS_COLORS = {
+  [STATUS.SUSCEPTIBLE]: '#3498db', // 蓝色 - 易感人群
+  [STATUS.EXPOSED]: '#f39c12',     // 黄色 - 潜伏期人群
+  [STATUS.INFECTED]: '#e74c3c',    // 红色 - 感染人群
+  [STATUS.RECOVERED]: '#2ecc71',   // 绿色 - 康复人群
+  [STATUS.DEAD]: '#7f8c8d'         // 灰色 - 死亡人群
+};
 
 class Person {
-  constructor(x, y, status = SUSCEPTIBLE, simulationArea) {
+  constructor(x, y, status = STATUS.SUSCEPTIBLE, simulationArea) {
     this.x = x;
     this.y = y;
     this.status = status;
-    this.infectionDay = 0;
-    this.exposureDay = 0; // 潜伏期计数器
+    this.infectionDay = 0;               // 显性感染后的天数计数器
+    this.exposureDay = 0;                // 潜伏期天数计数器
     this.simulationArea = simulationArea;
-    this.dx = (Math.random() - 0.5) * 2;
-    this.dy = (Math.random() - 0.5) * 2;
-    this.radius = 5;
-    this.quarantined = false;
+    this.dx = (Math.random() - 0.5) * 2; // 水平移动方向
+    this.dy = (Math.random() - 0.5) * 2; // 垂直移动方向
+    this.radius = 5;                     // 人物半径大小
+    this.quarantined = false;            // 隔离状态标记
   }
 
   move(speed, quarantineEnabled, avoidInfectedEnabled) {
-    // 如果已死亡，不移动
-    if (this.status === DEAD) return;
+    // 已死亡的人不移动
+    if (this.status === STATUS.DEAD) return;
 
-    // 如果被隔离且已感染(显性症状)，不移动
-    if (quarantineEnabled && this.status === INFECTED && this.quarantined) return;
+    // 如果开启隔离措施且已感染并被隔离，则不移动
+    if (quarantineEnabled && this.status === STATUS.INFECTED && this.quarantined) return;
 
     // 计算新位置
     let newX = this.x + this.dx * speed;
     let newY = this.y + this.dy * speed;
 
-    // 健康人群主动远离隔离中的病人
-    if (avoidInfectedEnabled && (this.status === SUSCEPTIBLE || this.status === EXPOSED || this.status === RECOVERED)) {
+    // 当启用避开感染者功能时，健康人群会主动远离被隔离的病人
+    if (avoidInfectedEnabled && (this.status === STATUS.SUSCEPTIBLE || this.status === STATUS.EXPOSED || this.status === STATUS.RECOVERED)) {
       if (quarantineEnabled) {
         const avoidanceForce = { x: 0, y: 0 };
-        const avoidanceRadius = 50; // 避开距离
+        const avoidanceRadius = 50; // 避开距离半径
 
         for (const person of this.simulationArea.people) {
-          if (person === this || !(person.status === INFECTED && person.quarantined)) continue;
+          if (person === this || !(person.status === STATUS.INFECTED && person.quarantined)) continue;
 
           const dx = this.x - person.x;
           const dy = this.y - person.y;
@@ -79,7 +91,7 @@ class Person {
       }
     }
 
-    // 边界检查
+    // 边界检查与反弹
     if (newX < this.radius || newX > this.simulationArea.width - this.radius) {
       this.dx = -this.dx;
       newX = this.x + this.dx * speed;
@@ -94,10 +106,11 @@ class Person {
   }
 
   checkInfection(people, infectionRate, infectionRadius) {
-    if (this.status !== SUSCEPTIBLE) return;
+    // 只有易感人群可能被感染
+    if (this.status !== STATUS.SUSCEPTIBLE) return;
 
     for (const person of people) {
-      if (person === this || (person.status !== INFECTED && person.status !== EXPOSED)) continue;
+      if (person === this || (person.status !== STATUS.INFECTED && person.status !== STATUS.EXPOSED)) continue;
 
       const dx = this.x - person.x;
       const dy = this.y - person.y;
@@ -105,14 +118,14 @@ class Person {
 
       if (distance < infectionRadius) {
         // 根据传染率决定是否被感染
-        // 潜伏期的人传染性降低50%
+        // 潜伏期人群传染性降低50%
         let adjustedRate = infectionRate;
-        if (person.status === EXPOSED) {
+        if (person.status === STATUS.EXPOSED) {
           adjustedRate = infectionRate * 0.5;
         }
 
         if (Math.random() * 100 < adjustedRate) {
-          this.status = EXPOSED; // 现在变为潜伏期状态，而不是直接感染
+          this.status = STATUS.EXPOSED; // 先进入潜伏期状态，而非直接感染
           this.exposureDay = 0;
           return;
         }
@@ -122,21 +135,21 @@ class Person {
 
   updateDisease(recoveryTime, mortalityRate, incubationPeriod) {
     // 更新潜伏期状态
-    if (this.status === EXPOSED) {
-      // 只有在模拟天数更新时才增加潜伏天数
+    if (this.status === STATUS.EXPOSED) {
+      // 每10帧更新一次天数计数（模拟一天）
       if (this.simulationArea.frameCount % 10 === 0) {
         this.exposureDay++;
       }
 
-      // 检查是否达到了潜伏期结束时间
+      // 检查是否达到潜伏期结束时间
       if (this.exposureDay >= incubationPeriod) {
-        this.status = INFECTED; // 从潜伏期转为显性感染
+        this.status = STATUS.INFECTED; // 从潜伏期转为显性感染
         this.infectionDay = 0;
       }
     }
     // 更新感染状态
-    else if (this.status === INFECTED) {
-      // 只有在模拟天数更新时才增加感染天数
+    else if (this.status === STATUS.INFECTED) {
+      // 每10帧更新一次天数计数（模拟一天）
       if (this.simulationArea.frameCount % 10 === 0) {
         this.infectionDay++;
       }
@@ -145,9 +158,9 @@ class Person {
       if (this.infectionDay >= recoveryTime) {
         // 根据死亡率决定是恢复还是死亡
         if (Math.random() * 100 < mortalityRate) {
-          this.status = DEAD;
+          this.status = STATUS.DEAD;
         } else {
-          this.status = RECOVERED;
+          this.status = STATUS.RECOVERED;
         }
       }
     }
@@ -157,30 +170,14 @@ class Person {
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
 
-    // 根据状态设置颜色
-    switch (this.status) {
-      case SUSCEPTIBLE:
-        ctx.fillStyle = '#3498db'; // 蓝色
-        break;
-      case EXPOSED:
-        ctx.fillStyle = '#f39c12'; // 黄色 (潜伏期)
-        break;
-      case INFECTED:
-        ctx.fillStyle = '#e74c3c'; // 红色
-        break;
-      case RECOVERED:
-        ctx.fillStyle = '#2ecc71'; // 绿色
-        break;
-      case DEAD:
-        ctx.fillStyle = '#7f8c8d'; // 灰色
-        break;
-    }
+    // 设置颜色根据状态
+    ctx.fillStyle = STATUS_COLORS[this.status];
 
     ctx.fill();
     ctx.closePath();
 
-    // 如果被隔离，绘制隔离标记
-    if (this.quarantined && this.status === INFECTED) {
+    // 如果被隔离，绘制隔离标记（紫色环）
+    if (this.quarantined && this.status === STATUS.INFECTED) {
       ctx.beginPath();
       ctx.arc(this.x, this.y, this.radius + 3, 0, Math.PI * 2);
       ctx.strokeStyle = '#8e44ad'; // 紫色
@@ -197,26 +194,28 @@ class SimulationArea {
     this.ctx = canvas.getContext('2d');
     this.width = canvas.width;
     this.height = canvas.height;
-    this.people = [];
-    this.day = 0;
-    this.isRunning = false;
-    this.frameCount = 0;
+    this.people = [];            // 人群数组
+    this.day = 0;                // 当前模拟天数
+    this.isRunning = false;      // 模拟运行状态
+    this.frameCount = 0;         // 帧计数器
     this.statistics = {
-      susceptible: 0,
-      exposed: 0,
-      infected: 0,
-      recovered: 0,
-      dead: 0,
-      dailyNewInfections: 0
+      susceptible: 0,            // 易感人数
+      exposed: 0,                // 潜伏期人数
+      infected: 0,               // 感染人数
+      recovered: 0,              // 康复人数
+      dead: 0,                   // 死亡人数
+      dailyNewInfections: 0      // 每日新增感染
     };
-    this.historicalData = [];
-    this.autoStopEnabled = true; // 默认启用自动停止功能
-    this.stoppedAutomatically = false; // 标记是否已自动停止
-    this.scale = 1; // 缩放因子，保持人物视觉大小一致
-    this.dailyNewInfectionsAccumulator = 0; // 累计每日新增感染数
-    this.dailyNewExposedAccumulator = 0; // 累计每日新增潜伏人数
-    this.dailyNewRecoveredAccumulator = 0; // 累计每日康复数
-    this.dailyNewDeathsAccumulator = 0; // 累计每日新增死亡数
+    this.historicalData = [];    // 历史数据记录
+    this.autoStopEnabled = true; // 是否启用自动停止功能
+    this.stoppedAutomatically = false; // 是否已自动停止标记
+    this.scale = 1;              // 缩放因子，保持人物视觉大小一致
+
+    // 每日数据累计器
+    this.dailyNewInfectionsAccumulator = 0; // 每日新增感染数累计
+    this.dailyNewExposedAccumulator = 0;    // 每日新增潜伏数累计
+    this.dailyNewRecoveredAccumulator = 0;  // 每日新增康复数累计
+    this.dailyNewDeathsAccumulator = 0;     // 每日新增死亡数累计
   }
 
   initialize(populationSize, initialInfected) {
@@ -227,7 +226,7 @@ class SimulationArea {
     for (let i = 0; i < populationSize; i++) {
       const x = Math.random() * (this.width - 20) + 10;
       const y = Math.random() * (this.height - 20) + 10;
-      const status = i < initialInfected ? INFECTED : SUSCEPTIBLE;
+      const status = i < initialInfected ? STATUS.INFECTED : STATUS.SUSCEPTIBLE;
 
       this.people.push(new Person(x, y, status, this));
     }
@@ -243,28 +242,28 @@ class SimulationArea {
   updateStatistics() {
     // 重置统计数据
     this.statistics.susceptible = 0;
-    this.statistics.exposed = 0; // 重置潜伏期统计
+    this.statistics.exposed = 0;
     this.statistics.infected = 0;
     this.statistics.recovered = 0;
     this.statistics.dead = 0;
     // 注意：新增感染、潜伏、康复和死亡通过累计器来跟踪，不在这里重置
 
-    // 计算当前状态
+    // 计算当前状态人数
     for (const person of this.people) {
       switch (person.status) {
-        case SUSCEPTIBLE:
+        case STATUS.SUSCEPTIBLE:
           this.statistics.susceptible++;
           break;
-        case EXPOSED:
-          this.statistics.exposed++; // 统计潜伏期人数
+        case STATUS.EXPOSED:
+          this.statistics.exposed++;
           break;
-        case INFECTED:
+        case STATUS.INFECTED:
           this.statistics.infected++;
           break;
-        case RECOVERED:
+        case STATUS.RECOVERED:
           this.statistics.recovered++;
           break;
-        case DEAD:
+        case STATUS.DEAD:
           this.statistics.dead++;
           break;
       }
@@ -283,14 +282,14 @@ class SimulationArea {
     this.historicalData.push({
       day: this.day,
       susceptible: this.statistics.susceptible,
-      exposed: this.statistics.exposed, // 记录潜伏期数据
+      exposed: this.statistics.exposed,
       infected: this.statistics.infected,
       recovered: this.statistics.recovered,
       dead: this.statistics.dead,
-      newInfections: this.dailyNewInfectionsAccumulator, // 使用累计器中的值
-      newExposed: this.dailyNewExposedAccumulator, // 记录新增潜伏人数
-      newRecovered: this.dailyNewRecoveredAccumulator, // 使用康复累计器中的值
-      newDeaths: this.dailyNewDeathsAccumulator // 记录新增死亡人数
+      newInfections: this.dailyNewInfectionsAccumulator, // 新增显性感染
+      newExposed: this.dailyNewExposedAccumulator,       // 新增潜伏人数
+      newRecovered: this.dailyNewRecoveredAccumulator,   // 新增康复人数
+      newDeaths: this.dailyNewDeathsAccumulator          // 新增死亡人数
     });
 
     // 重置每日新增数据累计器
@@ -314,7 +313,7 @@ class SimulationArea {
       // 记录更新前的状态
       const prevStatus = person.status;
 
-      // 移动
+      // 移动人群
       person.move(
         params.movementSpeed,
         params.quarantineEnabled,
@@ -328,36 +327,36 @@ class SimulationArea {
         params.infectionRadius
       );
 
-      // 更新疾病状态，加入潜伏期参数
+      // 更新疾病状态
       person.updateDisease(
         params.recoveryTime,
         params.mortalityRate,
         params.incubationPeriod
       );
 
-      // 统计每次更新中的新增暴露人数
-      if (prevStatus === SUSCEPTIBLE && person.status === EXPOSED) {
+      // 统计状态变化
+      // 从易感到潜伏期
+      if (prevStatus === STATUS.SUSCEPTIBLE && person.status === STATUS.EXPOSED) {
         this.dailyNewExposedAccumulator++;
       }
 
-      // 统计每次更新中的新增感染人数（从潜伏期转为显性感染）
-      if (prevStatus === EXPOSED && person.status === INFECTED) {
+      // 从潜伏期到显性感染
+      if (prevStatus === STATUS.EXPOSED && person.status === STATUS.INFECTED) {
         this.dailyNewInfectionsAccumulator++;
       }
 
-      // 统计每次更新中的新增康复人数
-      if (prevStatus === INFECTED && person.status === RECOVERED) {
+      // 从感染到康复
+      if (prevStatus === STATUS.INFECTED && person.status === STATUS.RECOVERED) {
         this.dailyNewRecoveredAccumulator++;
       }
 
-      // 统计每次更新中的新增死亡人数
-      if (prevStatus === INFECTED && person.status === DEAD) {
+      // 从感染到死亡
+      if (prevStatus === STATUS.INFECTED && person.status === STATUS.DEAD) {
         this.dailyNewDeathsAccumulator++;
       }
 
-      // 如果启用隔离措施，随机隔离感染者(只隔离有症状的感染者)
-      if (params.quarantineEnabled && person.status === INFECTED && !person.quarantined) {
-        // 有20%的概率被发现并隔离
+      // 隔离措施：有20%概率发现并隔离有症状的感染者
+      if (params.quarantineEnabled && person.status === STATUS.INFECTED && !person.quarantined) {
         if (Math.random() < 0.2) {
           person.quarantined = true;
         }
@@ -422,7 +421,7 @@ class SimulationArea {
 
   // 调整场地尺寸
   resizeCanvas(width, height) {
-    // 暂停模拟标志
+    // 保存当前运行状态
     const wasRunning = this.isRunning;
     if (wasRunning) this.pause();
 
@@ -433,7 +432,7 @@ class SimulationArea {
       relY: person.y / this.height
     }));
 
-    // 计算缩放因子 - 反转计算，这样人物大小会保持一致
+    // 计算缩放因子 - 反转计算，确保人物大小保持一致
     const oldArea = this.width * this.height;
     const newArea = width * height;
     this.scale = Math.sqrt(newArea / oldArea);
@@ -467,8 +466,6 @@ class SimulationArea {
     for (const person of this.people) {
       person.draw(this.ctx);
     }
-
-    // 不再显示天数在canvas中
   }
 
   start() {
@@ -485,11 +482,13 @@ class SimulationArea {
     this.pause();
     this.stoppedAutomatically = false; // 重置自动停止标记
     this.frameCount = 0; // 重置帧计数器
-    this.day = 0; // 明确重置天数
-    this.dailyNewInfectionsAccumulator = 0; // 重置新增感染累计器
-    this.dailyNewExposedAccumulator = 0; // 重置新增潜伏累计器
-    this.dailyNewRecoveredAccumulator = 0; // 重置康复累计器
-    this.dailyNewDeathsAccumulator = 0; // 重置新增死亡累计器
+    this.day = 0; // 重置天数
+
+    // 重置所有累计器
+    this.dailyNewInfectionsAccumulator = 0;
+    this.dailyNewExposedAccumulator = 0;
+    this.dailyNewRecoveredAccumulator = 0;
+    this.dailyNewDeathsAccumulator = 0;
 
     // 重置历史数据和重新初始化人口
     this.historicalData = [];
