@@ -17,7 +17,8 @@ const simulationParams = {
   quarantineEnabled: false,
   avoidInfectedEnabled: true,
   autoStopEnabled: true,
-  canvasSize: 500
+  canvasSize: 500,
+  simulationCount: 10 // 批量模拟次数默认值
 };
 
 // 初始化函数
@@ -49,6 +50,13 @@ function initialize() {
 
   // 开始动画循环
   simulationController.startAnimationLoop(simulationParams);
+
+  // 添加ESC键监听，用于关闭对话框
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      domManager.hideBatchSimulationDialog();
+    }
+  });
 }
 
 // 设置事件监听器
@@ -71,6 +79,11 @@ function setupEventListeners() {
 
     onFastSim: () => {
       simulationController.runFastSimulation(simulationParams);
+    },
+
+    onBatchSim: () => {
+      // 这个回调现在只在对话框中确认后才会触发
+      simulationController.runBatchSimulation(simulationParams);
     },
 
     onAutoStopToggle: (enabled) => {

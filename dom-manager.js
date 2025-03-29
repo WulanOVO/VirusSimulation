@@ -12,6 +12,7 @@ class DOMManager {
     this.elements.pauseBtn = document.getElementById('pause-btn');
     this.elements.resetBtn = document.getElementById('reset-btn');
     this.elements.fastSimBtn = document.getElementById('fast-sim-btn');
+    this.elements.batchSimBtn = document.getElementById('batch-sim-btn'); // 批量模拟按钮
 
     // 获取人口参数元素
     this.elements.populationSizeSlider = document.getElementById('population-size');
@@ -37,6 +38,13 @@ class DOMManager {
     this.elements.simulationSpeedSlider = document.getElementById('simulation-speed');
     this.elements.simulationSpeedValue = document.getElementById('simulation-speed-value');
 
+    // 获取批量模拟对话框元素
+    this.elements.batchSimulationDialog = document.getElementById('batch-simulation-dialog');
+    this.elements.closeModalBtn = document.querySelector('.close-modal-btn');
+    this.elements.batchSimulationCountSlider = document.getElementById('batch-simulation-count');
+    this.elements.batchSimulationCountValue = document.getElementById('batch-simulation-count-value');
+    this.elements.startBatchSimBtn = document.getElementById('start-batch-simulation-btn');
+
     // 获取开关元素
     this.elements.quarantineToggle = document.getElementById('quarantine');
     this.elements.autoStopToggle = document.getElementById('auto-stop');
@@ -49,6 +57,7 @@ class DOMManager {
     // 获取加载指示器
     this.elements.loadingIndicator = document.getElementById('loading-indicator');
     this.elements.progressElement = document.getElementById('simulation-progress');
+    this.elements.loadingText = document.getElementById('loading-text');
 
     // 获取模拟画布
     this.elements.canvas = document.getElementById('simulation-canvas');
@@ -63,6 +72,51 @@ class DOMManager {
     this.elements.pauseBtn.addEventListener('click', this.callbacks.onPause);
     this.elements.resetBtn.addEventListener('click', () => this.callbacks.onReset(params));
     this.elements.fastSimBtn.addEventListener('click', this.callbacks.onFastSim);
+
+    // 添加批量模拟按钮事件 - 现在点击只是显示对话框
+    if (this.elements.batchSimBtn) {
+      this.elements.batchSimBtn.addEventListener('click', () => {
+        this.showBatchSimulationDialog();
+      });
+    }
+
+    // 批量模拟对话框事件
+    if (this.elements.batchSimulationDialog) {
+      // 关闭对话框按钮
+      this.elements.closeModalBtn.addEventListener('click', () => {
+        this.hideBatchSimulationDialog();
+      });
+
+      // 设置批量模拟次数滑块事件
+      this.setupSliderEvent(
+        this.elements.batchSimulationCountSlider,
+        this.elements.batchSimulationCountValue,
+        (value) => {
+          params.simulationCount = value;
+          this.elements.batchSimulationCountValue.textContent = value;
+        }
+      );
+
+      // 开始批量模拟按钮
+      this.elements.startBatchSimBtn.addEventListener('click', () => {
+        // 获取设置的模拟次数
+        const simulationCount = parseInt(this.elements.batchSimulationCountSlider.value);
+        params.simulationCount = simulationCount;
+
+        // 隐藏对话框
+        this.hideBatchSimulationDialog();
+
+        // 开始批量模拟
+        this.callbacks.onBatchSim();
+      });
+
+      // 点击对话框外部关闭对话框
+      this.elements.batchSimulationDialog.addEventListener('click', (e) => {
+        if (e.target === this.elements.batchSimulationDialog) {
+          this.hideBatchSimulationDialog();
+        }
+      });
+    }
 
     // 人口参数事件
     this.setupSliderEvent(
@@ -183,6 +237,20 @@ class DOMManager {
     });
   }
 
+  // 显示批量模拟设置对话框
+  showBatchSimulationDialog() {
+    if (this.elements.batchSimulationDialog) {
+      this.elements.batchSimulationDialog.classList.add('active');
+    }
+  }
+
+  // 隐藏批量模拟设置对话框
+  hideBatchSimulationDialog() {
+    if (this.elements.batchSimulationDialog) {
+      this.elements.batchSimulationDialog.classList.remove('active');
+    }
+  }
+
   // 显示加载指示器
   showLoadingIndicator() {
     this.elements.loadingIndicator.classList.add('active');
@@ -196,6 +264,13 @@ class DOMManager {
   // 更新进度
   updateProgress(value) {
     this.elements.progressElement.textContent = value;
+  }
+
+  // 更新加载文本
+  updateLoadingText(text) {
+    if (this.elements.loadingText) {
+      this.elements.loadingText.textContent = text;
+    }
   }
 
   // 调整画布大小

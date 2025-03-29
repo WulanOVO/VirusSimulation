@@ -288,14 +288,6 @@ class ChartManager {
   resizeCharts() {
     if (!this.initialized) return;
 
-    const canvases = [
-      document.getElementById('population-chart'),
-      document.getElementById('new-cases-chart'),
-      document.getElementById('health-outcomes-chart')
-    ];
-
-    canvases.forEach(canvas => setHighDPI(canvas));
-
     if (this.populationChart) this.populationChart.resize();
     if (this.newCasesChart) this.newCasesChart.resize();
     if (this.healthOutcomesChart) this.healthOutcomesChart.resize();
@@ -316,6 +308,10 @@ class ChartManager {
     const newRecoveredData = historicalData.map(data => data.newRecovered || 0);
     const newDeathsData = historicalData.map(data => data.newDeaths || 0); // 提取新增死亡数据
 
+    // 检查是否为批量模拟结果
+    const isBatchResult = historicalData.length > 0 && historicalData[0].hasOwnProperty('simulationCount');
+    const titleSuffix = isBatchResult ? '（平均值）' : '';
+
     // 更新人口分布图表
     this.populationChart.data.labels = days;
     this.populationChart.data.datasets[0].data = susceptibleData;
@@ -323,18 +319,21 @@ class ChartManager {
     this.populationChart.data.datasets[2].data = infectedData;
     this.populationChart.data.datasets[3].data = recoveredData;
     this.populationChart.data.datasets[4].data = deadData;
+    this.populationChart.options.plugins.title.text = `人群分布趋势${titleSuffix}`;
     this.populationChart.update();
 
     // 更新每日新增传播指标图表
     this.newCasesChart.data.labels = days;
     this.newCasesChart.data.datasets[0].data = newExposedData; // 更新新增潜伏数据
     this.newCasesChart.data.datasets[1].data = newInfectionsData;
+    this.newCasesChart.options.plugins.title.text = `每日新增病例数据${titleSuffix}`;
     this.newCasesChart.update();
 
     // 更新每日健康结果指标图表
     this.healthOutcomesChart.data.labels = days;
     this.healthOutcomesChart.data.datasets[0].data = newRecoveredData;
     this.healthOutcomesChart.data.datasets[1].data = newDeathsData;
+    this.healthOutcomesChart.options.plugins.title.text = `每日减少病例数据${titleSuffix}`;
     this.healthOutcomesChart.update();
   }
 }
