@@ -413,10 +413,7 @@ class SimulationArea {
     this.pause();
     this.stoppedAutomatically = true;
 
-    // 使用全局通知函数
-    if (typeof showNotification === 'function') {
-      showNotification(message);
-    }
+    showNotification(message);
   }
 
   // 调整场地尺寸

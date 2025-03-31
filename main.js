@@ -87,36 +87,37 @@ function setupEventListeners() {
     },
 
     onAutoStopToggle: (enabled) => {
-      if (simulationArea) {
-        simulationArea.autoStopEnabled = enabled;
-      }
+      simulationArea.autoStopEnabled = enabled;
     },
 
     onApplySize: (size) => {
-      if (simulationArea) {
-        const isRunning = simulationArea.isRunning;
+      const isRunning = simulationArea.isRunning;
 
-        // 如果模拟正在运行，先暂停
-        if (isRunning) {
-          simulationArea.pause();
-          simulationController.stopAnimationLoop();
-        }
+      // 如果模拟正在运行，先暂停
+      if (isRunning) {
+        simulationArea.pause();
+        simulationController.stopAnimationLoop();
+      }
 
-        // 调整场地尺寸
-        domManager.resizeCanvas(size, size);
-        simulationArea.resizeCanvas(size, size);
+      // 调整场地尺寸
+      domManager.resizeCanvas(size, size);
+      simulationArea.resizeCanvas(size, size);
 
-        // 如果之前正在运行，恢复运行
-        if (isRunning) {
-          simulationArea.start();
-          simulationController.startAnimationLoop(simulationParams);
-        }
+      // 如果之前正在运行，恢复运行
+      if (isRunning) {
+        simulationArea.start();
+        simulationController.startAnimationLoop(simulationParams);
       }
     }
   };
 
   // 使用DOM管理器设置事件监听器
   domManager.setupEventListeners(simulationParams, simulationCallbacks);
+}
+
+// 定义全局通知函数
+function showNotification(message) {
+  domManager.showNotification(message);
 }
 
 // 窗口加载完成后初始化
