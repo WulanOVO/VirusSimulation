@@ -415,7 +415,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const tempCanvas = document.createElement('canvas');
     const tempCtx = tempCanvas.getContext('2d');
 
-    const width = 1600;
+    const width = 1800;
     const height = 900;
     const scale = 2;
 

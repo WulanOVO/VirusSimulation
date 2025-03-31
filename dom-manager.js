@@ -326,6 +326,3 @@ class DOMManager {
     }, 5000);
   }
 }
-
-// 导出DOM管理器类
-window.DOMManager = DOMManager;

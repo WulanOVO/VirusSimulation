@@ -1,4 +1,4 @@
-// 模拟控制器类
+// 模拟控制器类 - 负责管理模拟流程和UI交互
 class SimulationController {
   constructor(simulationArea, chartManager, domManager) {
     this.simulationArea = simulationArea;
@@ -6,35 +6,34 @@ class SimulationController {
     this.domManager = domManager;
     this.animationFrameId = null;
     this.frameCounter = 0;
-    this.batchResults = []; // 存储批量模拟的结果
+    this.batchResults = []; // 批量模拟结果集
+
+    // 缓存原始方法引用
+    this._originalMethods = null;
+
+    // 绑定this指向
+    this.animate = this.animate.bind(this);
   }
 
-  // 开始动画循环
+  // 处理动画帧
+  animate(params) {
+    this.frameCounter++;
+
+    // 根据速度设置更新频率（值越大更新越频繁）
+    if (this.frameCounter % (11 - params.simulationSpeed) === 0) {
+      this.simulationArea.update(params);
+      this.frameCounter = 0;
+    }
+
+    // 每帧绘制以保持流畅视觉效果
+    this.simulationArea.draw();
+    this.animationFrameId = requestAnimationFrame(() => this.animate(params));
+  }
+
+  // 启动动画循环
   startAnimationLoop(params) {
-    // 如果已经在运行，不要创建新的动画循环
-    if (this.animationFrameId) return;
-
-    const animate = () => {
-      // 根据模拟速度控制更新频率
-      this.frameCounter++;
-
-      // 当frameCounter是simulationSpeed的倍数时更新模拟
-      // 速度值越大，更新越频繁（simulationSpeed=10时每帧都更新）
-      if (this.frameCounter % (11 - params.simulationSpeed) === 0) {
-        // 更新模拟
-        this.simulationArea.update(params);
-        this.frameCounter = 0;
-      }
-
-      // 绘制模拟（每帧都绘制以保持流畅的视觉效果）
-      this.simulationArea.draw();
-
-      // 请求下一帧
-      this.animationFrameId = requestAnimationFrame(animate);
-    };
-
-    // 开始动画循环
-    animate();
+    if (this.animationFrameId) return; // 避免重复启动
+    this.animationFrameId = requestAnimationFrame(() => this.animate(params));
   }
 
   // 停止动画循环
@@ -47,10 +46,7 @@ class SimulationController {
 
   // 执行快速模拟
   runFastSimulation(params, callback) {
-    // 停止当前动画循环
     this.stopAnimationLoop();
-
-    // 重置模拟
     this.simulationArea.reset(
       params.populationSize,
       params.initialInfected
@@ -60,133 +56,134 @@ class SimulationController {
     this.domManager.showLoadingIndicator();
     this.domManager.updateLoadingText("正在快速模拟中...");
 
-    // 开始快速模拟过程（使用setTimeout以避免UI卡死）
-    setTimeout(() => {
-      this.executeFastSimulation(params, (result) => {
-        // 模拟完成后的回调
-        this.domManager.hideLoadingIndicator();
-        this.domManager.updateLoadingText("正在模拟中..."); // 恢复默认文本
+    // 利用浏览器空闲时间
+    const scheduleNextBatch = window.requestIdleCallback || setTimeout;
 
-        // 确保模拟状态重置
+    scheduleNextBatch(() => {
+      this.executeFastSimulation(params, (result) => {
+        // 模拟完成后处理
+        this.domManager.hideLoadingIndicator();
+        this.domManager.updateLoadingText("正在模拟中...");
+
+        // 重置模拟状态
         this.simulationArea.pause();
         this.simulationArea.frameCount = 0;
+        this.simulationArea.stoppedAutomatically = false;
 
-        // 更新图表
+        // 更新图表并显示结果
         const event = new CustomEvent('dataUpdated', { detail: this.simulationArea.historicalData });
         document.dispatchEvent(event);
-
-        // 重新绘制画布
         this.simulationArea.draw();
 
-        // 滚动到页面底部以查看结果
+        // 滚动查看结果
         window.scrollTo(0, document.body.scrollHeight);
 
-        // 调用外部回调（如果有的话）
         if (callback) callback(result);
       });
-    }, 100);
+    }, { timeout: 100 });
   }
 
   // 执行批量模拟
   runBatchSimulation(params, callback) {
-    // 停止当前动画循环
     this.stopAnimationLoop();
-
-    // 重置结果数组
     this.batchResults = [];
 
-    // 显示加载指示器
+    // 准备UI
     this.domManager.showLoadingIndicator();
     this.domManager.updateLoadingText("正在批量模拟中...");
 
-    // 设置批量模拟的参数
-    const simulationCount = params.simulationCount || 10; // 默认10次模拟
-    let completedSimulations = 0;
-
-    // 更新进度信息
+    const simulationCount = params.simulationCount || 10;
     this.domManager.updateProgress(`已完成: 0/${simulationCount}`);
 
-    // 开始批量模拟过程
-    setTimeout(() => {
-      this.executeBatchSimulation(params, simulationCount, completedSimulations, (averagedData) => {
-        // 批量模拟完成后的回调
-        this.domManager.hideLoadingIndicator();
-        this.domManager.updateLoadingText("正在模拟中..."); // 恢复默认文本
+    // 利用浏览器空闲时间
+    const scheduleNextBatch = window.requestIdleCallback || setTimeout;
 
-        // 确保模拟状态重置
+    scheduleNextBatch(() => {
+      this.executeBatchSimulation(params, simulationCount, 0, (averagedData) => {
+        // 批量模拟完成后处理
+        this.domManager.hideLoadingIndicator();
+        this.domManager.updateLoadingText("正在模拟中...");
+
+        // 重置模拟状态
         this.simulationArea.pause();
         this.simulationArea.frameCount = 0;
+        this.simulationArea.stoppedAutomatically = false;
 
-        // 更新图表显示
+        // 更新图表并显示结果
         const event = new CustomEvent('dataUpdated', { detail: averagedData });
         document.dispatchEvent(event);
-
-        // 重新绘制画布
         this.simulationArea.draw();
 
-        // 滚动到页面底部以查看结果
+        // 滚动查看结果
         window.scrollTo(0, document.body.scrollHeight);
 
-        // 显示完成消息
         this.domManager.showNotification(`已完成${simulationCount}次模拟的平均结果分析`);
 
-        // 调用外部回调（如果有的话）
         if (callback) callback({ simulationCount, averagedData });
       });
-    }, 100);
+    }, { timeout: 100 });
   }
 
-  // 执行批量模拟的内部方法
-  executeBatchSimulation(params, totalCount, currentCount, callback) {
-    // 最大天数限制，防止无限循环
-    const MAX_DAYS = 365;
+  // 缓存原始方法
+  _saveOriginalMethods() {
+    if (!this._originalMethods) {
+      this._originalMethods = {
+        recordDailyData: this.simulationArea.recordDailyData,
+        updateStatistics: this.simulationArea.updateStatistics,
+        draw: this.simulationArea.draw
+      };
+    }
+  }
 
-    // 重置当前模拟
-    this.simulationArea.reset(
-      params.populationSize,
-      params.initialInfected
-    );
+  // 恢复原始方法
+  _restoreOriginalMethods() {
+    if (this._originalMethods) {
+      this.simulationArea.recordDailyData = this._originalMethods.recordDailyData;
+      this.simulationArea.updateStatistics = this._originalMethods.updateStatistics;
+      this.simulationArea.draw = this._originalMethods.draw;
+    }
+  }
 
-    // 批量模拟过程中禁用绘制和UI更新
-    const originalRecordDailyData = this.simulationArea.recordDailyData;
-    const originalUpdateStatistics = this.simulationArea.updateStatistics;
-    const originalDraw = this.simulationArea.draw;
+  // 替换为优化版方法
+  _setupOptimizedMethods() {
+    this._saveOriginalMethods();
 
-    // 重写recordDailyData方法，避免触发图表更新
+    // 优化记录数据方法 - 避免触发图表更新
     this.simulationArea.recordDailyData = function() {
-      // 只记录数据，不触发图表更新
       const day = this.day;
       this.historicalData.push({
         day: day,
         susceptible: this.statistics.susceptible,
-        exposed: this.statistics.exposed,
+        exposed: this.statistics.exposed || 0,
         infected: this.statistics.infected,
         recovered: this.statistics.recovered,
         dead: this.statistics.dead,
-        newInfections: this.dailyNewInfectionsAccumulator,
-        newExposed: this.dailyNewExposedAccumulator,
-        newRecovered: this.dailyNewRecoveredAccumulator,
-        newDeaths: this.dailyNewDeathsAccumulator
+        newExposed: this.dailyNewExposedAccumulator || 0,
+        newInfections: this.dailyNewInfectionsAccumulator || 0,
+        newRecovered: this.dailyNewRecoveredAccumulator || 0,
+        newDeaths: this.dailyNewDeathsAccumulator || 0
       });
 
-      // 重置每日新增数据累计器
+      // 重置累计器
       this.dailyNewInfectionsAccumulator = 0;
       this.dailyNewExposedAccumulator = 0;
       this.dailyNewRecoveredAccumulator = 0;
       this.dailyNewDeathsAccumulator = 0;
     };
 
-    // 重写updateStatistics方法，避免更新UI
+    // 优化统计方法 - 不更新UI
     this.simulationArea.updateStatistics = function() {
-      // 重置统计数据
       this.statistics.susceptible = 0;
       this.statistics.exposed = 0;
       this.statistics.infected = 0;
       this.statistics.recovered = 0;
       this.statistics.dead = 0;
 
-      // 计算当前状态人数但不更新UI
-      for (const person of this.people) {
+      // 使用索引循环提高性能
+      const people = this.people;
+      const len = people.length;
+      for (let i = 0; i < len; i++) {
+        const person = people[i];
         switch (person.status) {
           case STATUS.SUSCEPTIBLE:
             this.statistics.susceptible++;
@@ -207,83 +204,155 @@ class SimulationController {
       }
     };
 
-    // 重写draw方法，在批量模拟中不实际绘制
+    // 优化绘制方法 - 批量模拟时禁用绘制
     this.simulationArea.draw = function() {
-      // 批量模拟中不执行绘制操作，提高性能
+      // 空函数提高性能
     };
+  }
 
-    // 标记模拟运行
+  // 批量模拟内部方法
+  executeBatchSimulation(params, totalCount, currentCount, callback) {
+    const MAX_DAYS = 365;
+
+    // 重置模拟
+    this.simulationArea.reset(
+      params.populationSize,
+      params.initialInfected
+    );
+
+    // 首次调用时优化方法
+    if (currentCount === 0) {
+      this._setupOptimizedMethods();
+    }
+
     this.simulationArea.isRunning = true;
 
     // 模拟循环
     let day = 0;
-
     const simulateNextBatch = () => {
-      // 每次批处理模拟10天
-      for (let i = 0; i < 10; i++) {
-        // 进行多次更新以模拟一天
+      const batchSize = 10;
+      let i = 0;
+
+      // 批量更新
+      while (i < batchSize && day < MAX_DAYS) {
+        // 每天10次更新
         for (let j = 0; j < 10; j++) {
           this.simulationArea.update(params);
         }
 
         day++;
+        i++;
 
-        // 检查是否应该停止
-        let stopReason = null;
-        if (day >= MAX_DAYS) {
-          stopReason = "模拟已完成：达到最大模拟天数";
-        } else if (this.simulationArea.statistics.infected === 0 && this.simulationArea.statistics.exposed === 0) {
-          stopReason = "模拟已完成：没有活跃感染者和潜伏期者";
-        } else if (
-          this.simulationArea.statistics.susceptible === 0 &&
-          this.simulationArea.statistics.infected === 0 &&
-          this.simulationArea.statistics.exposed === 0
-        ) {
-          stopReason = "模拟已完成：全部人口已被感染过";
-        }
-
-        if (stopReason) {
-          // 确保模拟停止
+        // 检查是否结束条件
+        if (this._shouldStopSimulation(day)) {
+          const stopReason = this._getStopReason(day);
           this.simulationArea.isRunning = false;
 
-          // 存储这次模拟的历史数据
+          // 保存结果
           this.batchResults.push([...this.simulationArea.historicalData]);
 
           // 更新进度
           const nextCount = currentCount + 1;
           this.domManager.updateProgress(`已完成: ${nextCount}/${totalCount}`);
 
-          // 检查是否完成了所有模拟
           if (nextCount < totalCount) {
             // 继续下一次模拟
-            setTimeout(() => {
+            const scheduleNextSim = window.requestIdleCallback || setTimeout;
+            scheduleNextSim(() => {
               this.executeBatchSimulation(params, totalCount, nextCount, callback);
-            }, 0);
+            }, { timeout: 0 });
           } else {
-            // 恢复原始方法
-            this.simulationArea.recordDailyData = originalRecordDailyData;
-            this.simulationArea.updateStatistics = originalUpdateStatistics;
-            this.simulationArea.draw = originalDraw;
+            // 所有模拟完成，恢复原始方法
+            this._restoreOriginalMethods();
 
-            // 恢复UI状态
+            // 重置状态
+            this.simulationArea.pause();
+            this.simulationArea.frameCount = 0;
+            this.simulationArea.stoppedAutomatically = false;
             this.simulationArea.updateStatistics();
 
-            // 所有模拟已完成，计算平均值
+            // 计算平均结果
             const averagedData = this.calculateAverageResults(this.batchResults);
-
-            // 回调返回平均结果
             callback(averagedData);
           }
           return;
         }
       }
 
-      // 继续模拟
-      setTimeout(simulateNextBatch, 0);
+      // 请求下一帧处理
+      if (day < MAX_DAYS) {
+        requestAnimationFrame(simulateNextBatch);
+      }
     };
 
-    // 开始批处理
-    simulateNextBatch();
+    requestAnimationFrame(simulateNextBatch);
+  }
+
+  // 判断是否应停止模拟
+  _shouldStopSimulation(day) {
+    const stats = this.simulationArea.statistics;
+
+    // 三种停止条件
+    if (day >= 365) return true;
+    if (stats.infected === 0 && stats.exposed === 0 && day > 1) return true;
+    if (stats.susceptible === 0 && stats.infected === 0 && stats.exposed === 0) return true;
+
+    return false;
+  }
+
+  // 获取停止原因
+  _getStopReason(day) {
+    const stats = this.simulationArea.statistics;
+
+    if (day >= 365) {
+      return "模拟已完成：达到最大模拟天数";
+    } else if (stats.infected === 0 && stats.exposed === 0) {
+      return "模拟已完成：没有活跃感染者和潜伏期者";
+    } else if (stats.susceptible === 0 && stats.infected === 0 && stats.exposed === 0) {
+      return "模拟已完成：全部人口已被感染过";
+    }
+
+    return null;
+  }
+
+  // 快速模拟内部方法
+  executeFastSimulation(params, callback) {
+    const MAX_DAYS = 365;
+    this.simulationArea.isRunning = true;
+
+    let day = 0;
+    const simulateNextBatch = () => {
+      const batchSize = 10;
+      let i = 0;
+
+      // 批量更新
+      while (i < batchSize && day < MAX_DAYS) {
+        // 每天10次更新
+        for (let j = 0; j < 10; j++) {
+          this.simulationArea.update(params);
+        }
+
+        day++;
+        i++;
+        this.domManager.updateProgress(day);
+
+        // 检查是否结束条件
+        if (this._shouldStopSimulation(day)) {
+          const stopReason = this._getStopReason(day);
+          this.simulationArea.isRunning = false;
+          this.domManager.showNotification(stopReason);
+          callback({ day: day, reason: stopReason });
+          return;
+        }
+      }
+
+      // 请求下一帧处理
+      if (day < MAX_DAYS) {
+        requestAnimationFrame(simulateNextBatch);
+      }
+    };
+
+    requestAnimationFrame(simulateNextBatch);
   }
 
   // 计算多次模拟的平均结果
@@ -292,11 +361,9 @@ class SimulationController {
 
     // 找出最长的模拟天数
     const maxDays = Math.max(...batchResults.map(result => result.length));
+    const averagedData = new Array(maxDays);
 
-    // 创建平均结果数组
-    const averagedData = [];
-
-    // 对每一天的数据求平均
+    // 逐天计算平均值
     for (let day = 0; day < maxDays; day++) {
       let daySum = {
         day,
@@ -311,102 +378,46 @@ class SimulationController {
         newDeaths: 0
       };
 
-      // 计算这一天有多少有效数据
       let validDataCount = 0;
+      const resultCount = batchResults.length;
 
-      // 累加所有有效的模拟结果
-      batchResults.forEach(result => {
+      // 累加有效结果
+      for (let i = 0; i < resultCount; i++) {
+        const result = batchResults[i];
         if (day < result.length) {
           validDataCount++;
+          const dailyData = result[day];
 
-          daySum.susceptible += result[day].susceptible;
-          daySum.exposed += result[day].exposed || 0;
-          daySum.infected += result[day].infected;
-          daySum.recovered += result[day].recovered;
-          daySum.dead += result[day].dead;
-          daySum.newExposed += result[day].newExposed || 0;
-          daySum.newInfections += result[day].newInfections || 0;
-          daySum.newRecovered += result[day].newRecovered || 0;
-          daySum.newDeaths += result[day].newDeaths || 0;
+          daySum.susceptible += dailyData.susceptible;
+          daySum.exposed += dailyData.exposed || 0;
+          daySum.infected += dailyData.infected;
+          daySum.recovered += dailyData.recovered;
+          daySum.dead += dailyData.dead;
+          daySum.newExposed += dailyData.newExposed || 0;
+          daySum.newInfections += dailyData.newInfections || 0;
+          daySum.newRecovered += dailyData.newRecovered || 0;
+          daySum.newDeaths += dailyData.newDeaths || 0;
         }
-      });
+      }
 
       // 计算平均值
       if (validDataCount > 0) {
-        daySum.susceptible = Math.round(daySum.susceptible / validDataCount);
-        daySum.exposed = Math.round(daySum.exposed / validDataCount);
-        daySum.infected = Math.round(daySum.infected / validDataCount);
-        daySum.recovered = Math.round(daySum.recovered / validDataCount);
-        daySum.dead = Math.round(daySum.dead / validDataCount);
-        daySum.newExposed = Math.round(daySum.newExposed / validDataCount);
-        daySum.newInfections = Math.round(daySum.newInfections / validDataCount);
-        daySum.newRecovered = Math.round(daySum.newRecovered / validDataCount);
-        daySum.newDeaths = Math.round(daySum.newDeaths / validDataCount);
+        const invCount = 1 / validDataCount; // 乘法替代除法提高性能
 
-        averagedData.push(daySum);
+        daySum.susceptible = Math.round(daySum.susceptible * invCount);
+        daySum.exposed = Math.round(daySum.exposed * invCount);
+        daySum.infected = Math.round(daySum.infected * invCount);
+        daySum.recovered = Math.round(daySum.recovered * invCount);
+        daySum.dead = Math.round(daySum.dead * invCount);
+        daySum.newExposed = Math.round(daySum.newExposed * invCount);
+        daySum.newInfections = Math.round(daySum.newInfections * invCount);
+        daySum.newRecovered = Math.round(daySum.newRecovered * invCount);
+        daySum.newDeaths = Math.round(daySum.newDeaths * invCount);
+
+        averagedData[day] = daySum;
       }
     }
 
-    return averagedData;
-  }
-
-  // 执行快速模拟的内部方法
-  executeFastSimulation(params, callback) {
-    // 最大天数限制，防止无限循环
-    const MAX_DAYS = 365;
-
-    // 标记模拟运行
-    this.simulationArea.isRunning = true;
-
-    // 模拟循环
-    let day = 0;
-
-    const simulateNextBatch = () => {
-      // 每次批处理模拟10天
-      for (let i = 0; i < 10; i++) {
-        // 进行多次更新以模拟一天
-        for (let j = 0; j < 10; j++) {
-          this.simulationArea.update(params);
-        }
-
-        day++;
-        this.domManager.updateProgress(day);
-
-        // 检查是否应该停止
-        let stopReason = null;
-        if (day >= MAX_DAYS) {
-          stopReason = "模拟已完成：达到最大模拟天数";
-        } else if (this.simulationArea.statistics.infected === 0 && this.simulationArea.statistics.exposed === 0) {
-          stopReason = "模拟已完成：没有活跃感染者和潜伏期者";
-        } else if (
-          this.simulationArea.statistics.susceptible === 0 &&
-          this.simulationArea.statistics.infected === 0 &&
-          this.simulationArea.statistics.exposed === 0
-        ) {
-          stopReason = "模拟已完成：全部人口已被感染过";
-        }
-
-        if (stopReason) {
-          // 确保模拟停止
-          this.simulationArea.isRunning = false;
-
-          // 显示结束信息
-          this.domManager.showNotification(stopReason);
-
-          // 调用回调并传递结果
-          callback({ day: day, reason: stopReason });
-          return;
-        }
-      }
-
-      // 使用setTimeout允许UI更新
-      setTimeout(simulateNextBatch, 0);
-    };
-
-    // 开始批处理
-    simulateNextBatch();
+    return averagedData.filter(Boolean);
   }
 }
-
-// 导出模拟控制器类
-window.SimulationController = SimulationController;
