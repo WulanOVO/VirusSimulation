@@ -115,11 +115,6 @@ function setupEventListeners() {
   domManager.setupEventListeners(simulationParams, simulationCallbacks);
 }
 
-// 定义全局通知函数
-function showNotification(message) {
-  domManager.showNotification(message);
-}
-
 // 窗口加载完成后初始化
 window.addEventListener('load', () => {
   initialize();

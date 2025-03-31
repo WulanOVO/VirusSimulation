@@ -413,7 +413,9 @@ class SimulationArea {
     this.pause();
     this.stoppedAutomatically = true;
 
-    showNotification(message);
+    if (window.showEachNotification) {
+      domManager.showNotification(message);
+    }
   }
 
   // 调整场地尺寸

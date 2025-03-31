@@ -46,6 +46,8 @@ class SimulationController {
 
   // 执行快速模拟
   runFastSimulation(params, callback) {
+    window.showEachNotification = false;
+
     this.stopAnimationLoop();
     this.simulationArea.reset(
       params.populationSize,
@@ -78,6 +80,8 @@ class SimulationController {
         // 滚动查看结果
         window.scrollTo(0, document.body.scrollHeight);
 
+        window.showEachNotification = true;
+
         if (callback) callback(result);
       });
     }, { timeout: 100 });
@@ -85,6 +89,8 @@ class SimulationController {
 
   // 执行批量模拟
   runBatchSimulation(params, callback) {
+    window.showEachNotification = false;
+
     this.stopAnimationLoop();
     this.batchResults = [];
 
@@ -118,6 +124,7 @@ class SimulationController {
         window.scrollTo(0, document.body.scrollHeight);
 
         this.domManager.showNotification(`已完成${simulationCount}次模拟的平均结果分析`);
+        window.showEachNotification = true;
 
         if (callback) callback({ simulationCount, averagedData });
       });
